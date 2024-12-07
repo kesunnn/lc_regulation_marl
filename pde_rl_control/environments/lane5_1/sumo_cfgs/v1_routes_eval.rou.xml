@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- generated handly by jonathan on 2024-08-11 14:42:38 -->
+
+<routes>
+
+    <vType id="controlled" vClass="passenger" color="1,1,0" carFollowModel="IDM" tau="1.4" minGap="2.5" accel="0.73" decel="1.67" desiredMaxSpeed="24.59" stepping="0.1"/>
+    <vType id="uncontrolled" vClass="passenger" color="1,0,0" carFollowModel="IDM" tau="1.4" minGap="2.5" accel="0.73" decel="1.67" desiredMaxSpeed="24.59" stepping="0.1"/>
+    <vType id="controlled:left" vClass="vip" color="1,1,0" lcSpeedGain="10.0" lcSpeedGainRight="0.0" carFollowModel="IDM" tau="1.4" minGap="2.5" accel="0.73" decel="1.67" desiredMaxSpeed="24.59" stepping="0.1"/>
+    <vType id="controlled:right" vClass="hov" color="1,1,0" lcSpeedGain="10.0" lcSpeedGainRight="10000.0" carFollowModel="IDM" tau="1.4" minGap="2.5" accel="0.73" decel="1.67" desiredMaxSpeed="24.59" stepping="0.1"/>
+    <route id="route1" edges="e1"/>
+
+</routes>

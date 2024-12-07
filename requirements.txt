@@ -1,0 +1,10 @@
+gym==0.25.2
+tensorboard==2.10.0
+tensorboardX==2.5.1
+matplotlib==3.8.3
+ipython==7.34.0
+torch==1.13.1
+traci==1.20.0
+numpy==1.23.4
+notebook==6.5.4
+tqdm==4.66.1

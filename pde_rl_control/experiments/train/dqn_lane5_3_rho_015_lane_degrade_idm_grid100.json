@@ -1,0 +1,956 @@
+{
+    "meta": {
+        "experiment_name": "dqn_test"
+    },
+    "simulation": {
+        "env_name": "TrafficEnv_lane5_3",
+        "max_time": 900,
+        "grid_length": 100.0,
+        "density_level": 0.15,
+        "state_normalize": true,
+        "fundamental_diagram_name": "IDM",
+        "vehicle_generator": "generate_vehicle_flows_from_IDM_FD",
+        "event_generator_mode": "random",
+        "event_generator": "lane_degrade_event_generator",
+        "event_generator_parameters": [
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_3",
+                "start_time": 480,
+                "end_time": 900,
+                "start_pos": 340,
+                "end_pos": 540,
+                "new_tau": 8.9
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_1",
+                "start_time": 360,
+                "end_time": 760,
+                "start_pos": 530,
+                "end_pos": 700,
+                "new_tau": 6.6
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_2",
+                "start_time": 790,
+                "end_time": 900,
+                "start_pos": 570,
+                "end_pos": 800,
+                "new_tau": 8.8
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_3",
+                "start_time": 470,
+                "end_time": 900,
+                "start_pos": 480,
+                "end_pos": 560,
+                "new_tau": 7.9
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_3",
+                "start_time": 100,
+                "end_time": 900,
+                "start_pos": 130,
+                "end_pos": 200,
+                "new_tau": 5.9
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_4",
+                "start_time": 750,
+                "end_time": 900,
+                "start_pos": 240,
+                "end_pos": 480,
+                "new_tau": 4.7
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_4",
+                "start_time": 560,
+                "end_time": 900,
+                "start_pos": 230,
+                "end_pos": 480,
+                "new_tau": 7.2
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_4",
+                "start_time": 790,
+                "end_time": 900,
+                "start_pos": 550,
+                "end_pos": 760,
+                "new_tau": 8.1
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_0",
+                "start_time": 660,
+                "end_time": 900,
+                "start_pos": 660,
+                "end_pos": 930,
+                "new_tau": 8.4
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_2",
+                "start_time": 570,
+                "end_time": 900,
+                "start_pos": 280,
+                "end_pos": 540,
+                "new_tau": 8.6
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_2",
+                "start_time": 470,
+                "end_time": 900,
+                "start_pos": 170,
+                "end_pos": 260,
+                "new_tau": 4.3
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_4",
+                "start_time": 570,
+                "end_time": 820,
+                "start_pos": 440,
+                "end_pos": 590,
+                "new_tau": 6.8
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_4",
+                "start_time": 650,
+                "end_time": 900,
+                "start_pos": 330,
+                "end_pos": 560,
+                "new_tau": 9.7
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_4",
+                "start_time": 100,
+                "end_time": 530,
+                "start_pos": 310,
+                "end_pos": 430,
+                "new_tau": 4.4
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_1",
+                "start_time": 620,
+                "end_time": 900,
+                "start_pos": 510,
+                "end_pos": 570,
+                "new_tau": 5.4
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_3",
+                "start_time": 400,
+                "end_time": 620,
+                "start_pos": 290,
+                "end_pos": 340,
+                "new_tau": 4.4
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_3",
+                "start_time": 740,
+                "end_time": 900,
+                "start_pos": 660,
+                "end_pos": 910,
+                "new_tau": 4.8
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_4",
+                "start_time": 340,
+                "end_time": 590,
+                "start_pos": 120,
+                "end_pos": 330,
+                "new_tau": 8.3
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_2",
+                "start_time": 770,
+                "end_time": 900,
+                "start_pos": 670,
+                "end_pos": 950,
+                "new_tau": 7.6
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_0",
+                "start_time": 430,
+                "end_time": 900,
+                "start_pos": 120,
+                "end_pos": 400,
+                "new_tau": 8.5
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_4",
+                "start_time": 450,
+                "end_time": 730,
+                "start_pos": 790,
+                "end_pos": 1000,
+                "new_tau": 5.7
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_0",
+                "start_time": 180,
+                "end_time": 900,
+                "start_pos": 250,
+                "end_pos": 500,
+                "new_tau": 5.6
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_0",
+                "start_time": 710,
+                "end_time": 900,
+                "start_pos": 590,
+                "end_pos": 830,
+                "new_tau": 6.7
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_1",
+                "start_time": 450,
+                "end_time": 900,
+                "start_pos": 710,
+                "end_pos": 770,
+                "new_tau": 5.1
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_1",
+                "start_time": 400,
+                "end_time": 880,
+                "start_pos": 350,
+                "end_pos": 640,
+                "new_tau": 7.9
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_0",
+                "start_time": 220,
+                "end_time": 900,
+                "start_pos": 180,
+                "end_pos": 380,
+                "new_tau": 6.3
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_1",
+                "start_time": 310,
+                "end_time": 630,
+                "start_pos": 550,
+                "end_pos": 790,
+                "new_tau": 8.1
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_4",
+                "start_time": 490,
+                "end_time": 760,
+                "start_pos": 490,
+                "end_pos": 720,
+                "new_tau": 9.9
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_2",
+                "start_time": 480,
+                "end_time": 660,
+                "start_pos": 640,
+                "end_pos": 860,
+                "new_tau": 8.1
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_3",
+                "start_time": 530,
+                "end_time": 900,
+                "start_pos": 450,
+                "end_pos": 600,
+                "new_tau": 6.0
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_2",
+                "start_time": 330,
+                "end_time": 450,
+                "start_pos": 750,
+                "end_pos": 940,
+                "new_tau": 4.4
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_3",
+                "start_time": 700,
+                "end_time": 830,
+                "start_pos": 570,
+                "end_pos": 620,
+                "new_tau": 9.5
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_0",
+                "start_time": 580,
+                "end_time": 900,
+                "start_pos": 450,
+                "end_pos": 690,
+                "new_tau": 9.7
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_0",
+                "start_time": 190,
+                "end_time": 890,
+                "start_pos": 600,
+                "end_pos": 840,
+                "new_tau": 8.9
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_2",
+                "start_time": 140,
+                "end_time": 270,
+                "start_pos": 560,
+                "end_pos": 760,
+                "new_tau": 6.0
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_3",
+                "start_time": 730,
+                "end_time": 900,
+                "start_pos": 240,
+                "end_pos": 460,
+                "new_tau": 7.5
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_4",
+                "start_time": 180,
+                "end_time": 690,
+                "start_pos": 430,
+                "end_pos": 530,
+                "new_tau": 6.4
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_4",
+                "start_time": 270,
+                "end_time": 380,
+                "start_pos": 110,
+                "end_pos": 180,
+                "new_tau": 9.1
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_4",
+                "start_time": 240,
+                "end_time": 810,
+                "start_pos": 750,
+                "end_pos": 890,
+                "new_tau": 9.2
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_0",
+                "start_time": 600,
+                "end_time": 870,
+                "start_pos": 410,
+                "end_pos": 560,
+                "new_tau": 8.6
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_3",
+                "start_time": 440,
+                "end_time": 900,
+                "start_pos": 340,
+                "end_pos": 620,
+                "new_tau": 9.3
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_2",
+                "start_time": 260,
+                "end_time": 420,
+                "start_pos": 670,
+                "end_pos": 760,
+                "new_tau": 8.6
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_3",
+                "start_time": 160,
+                "end_time": 440,
+                "start_pos": 580,
+                "end_pos": 700,
+                "new_tau": 5.6
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_2",
+                "start_time": 560,
+                "end_time": 900,
+                "start_pos": 500,
+                "end_pos": 740,
+                "new_tau": 8.5
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_2",
+                "start_time": 700,
+                "end_time": 900,
+                "start_pos": 680,
+                "end_pos": 730,
+                "new_tau": 8.2
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_1",
+                "start_time": 590,
+                "end_time": 850,
+                "start_pos": 580,
+                "end_pos": 790,
+                "new_tau": 5.7
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_4",
+                "start_time": 730,
+                "end_time": 900,
+                "start_pos": 250,
+                "end_pos": 500,
+                "new_tau": 8.1
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_1",
+                "start_time": 790,
+                "end_time": 900,
+                "start_pos": 250,
+                "end_pos": 500,
+                "new_tau": 5.3
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_3",
+                "start_time": 270,
+                "end_time": 370,
+                "start_pos": 770,
+                "end_pos": 870,
+                "new_tau": 5.8
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_2",
+                "start_time": 700,
+                "end_time": 900,
+                "start_pos": 770,
+                "end_pos": 1000,
+                "new_tau": 7.7
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_4",
+                "start_time": 470,
+                "end_time": 900,
+                "start_pos": 150,
+                "end_pos": 420,
+                "new_tau": 9.5
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_2",
+                "start_time": 730,
+                "end_time": 900,
+                "start_pos": 220,
+                "end_pos": 280,
+                "new_tau": 6.1
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_4",
+                "start_time": 590,
+                "end_time": 900,
+                "start_pos": 650,
+                "end_pos": 760,
+                "new_tau": 7.5
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_3",
+                "start_time": 570,
+                "end_time": 900,
+                "start_pos": 580,
+                "end_pos": 750,
+                "new_tau": 6.6
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_0",
+                "start_time": 120,
+                "end_time": 570,
+                "start_pos": 560,
+                "end_pos": 620,
+                "new_tau": 7.8
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_1",
+                "start_time": 770,
+                "end_time": 900,
+                "start_pos": 680,
+                "end_pos": 780,
+                "new_tau": 4.6
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_1",
+                "start_time": 440,
+                "end_time": 900,
+                "start_pos": 510,
+                "end_pos": 660,
+                "new_tau": 6.3
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_0",
+                "start_time": 220,
+                "end_time": 900,
+                "start_pos": 110,
+                "end_pos": 350,
+                "new_tau": 9.4
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_2",
+                "start_time": 600,
+                "end_time": 900,
+                "start_pos": 460,
+                "end_pos": 700,
+                "new_tau": 8.6
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_3",
+                "start_time": 650,
+                "end_time": 900,
+                "start_pos": 400,
+                "end_pos": 590,
+                "new_tau": 7.3
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_2",
+                "start_time": 450,
+                "end_time": 900,
+                "start_pos": 580,
+                "end_pos": 650,
+                "new_tau": 8.5
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_0",
+                "start_time": 290,
+                "end_time": 440,
+                "start_pos": 440,
+                "end_pos": 640,
+                "new_tau": 4.6
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_3",
+                "start_time": 270,
+                "end_time": 790,
+                "start_pos": 360,
+                "end_pos": 420,
+                "new_tau": 9.6
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_1",
+                "start_time": 540,
+                "end_time": 770,
+                "start_pos": 550,
+                "end_pos": 820,
+                "new_tau": 5.1
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_2",
+                "start_time": 540,
+                "end_time": 900,
+                "start_pos": 330,
+                "end_pos": 470,
+                "new_tau": 5.0
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_4",
+                "start_time": 250,
+                "end_time": 650,
+                "start_pos": 470,
+                "end_pos": 740,
+                "new_tau": 5.1
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_0",
+                "start_time": 160,
+                "end_time": 790,
+                "start_pos": 600,
+                "end_pos": 750,
+                "new_tau": 4.1
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_1",
+                "start_time": 750,
+                "end_time": 900,
+                "start_pos": 120,
+                "end_pos": 200,
+                "new_tau": 8.0
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_0",
+                "start_time": 110,
+                "end_time": 880,
+                "start_pos": 130,
+                "end_pos": 310,
+                "new_tau": 7.7
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_1",
+                "start_time": 320,
+                "end_time": 550,
+                "start_pos": 630,
+                "end_pos": 830,
+                "new_tau": 4.0
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_4",
+                "start_time": 290,
+                "end_time": 900,
+                "start_pos": 510,
+                "end_pos": 790,
+                "new_tau": 9.6
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_0",
+                "start_time": 240,
+                "end_time": 380,
+                "start_pos": 430,
+                "end_pos": 690,
+                "new_tau": 5.4
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_3",
+                "start_time": 530,
+                "end_time": 900,
+                "start_pos": 780,
+                "end_pos": 890,
+                "new_tau": 5.0
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_0",
+                "start_time": 170,
+                "end_time": 740,
+                "start_pos": 380,
+                "end_pos": 600,
+                "new_tau": 4.7
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_0",
+                "start_time": 410,
+                "end_time": 900,
+                "start_pos": 590,
+                "end_pos": 730,
+                "new_tau": 6.8
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_3",
+                "start_time": 400,
+                "end_time": 900,
+                "start_pos": 750,
+                "end_pos": 960,
+                "new_tau": 6.4
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_1",
+                "start_time": 250,
+                "end_time": 380,
+                "start_pos": 360,
+                "end_pos": 480,
+                "new_tau": 5.8
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_0",
+                "start_time": 570,
+                "end_time": 900,
+                "start_pos": 770,
+                "end_pos": 1000,
+                "new_tau": 8.4
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_2",
+                "start_time": 610,
+                "end_time": 900,
+                "start_pos": 590,
+                "end_pos": 700,
+                "new_tau": 8.5
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_3",
+                "start_time": 770,
+                "end_time": 900,
+                "start_pos": 440,
+                "end_pos": 610,
+                "new_tau": 9.2
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_2",
+                "start_time": 750,
+                "end_time": 900,
+                "start_pos": 670,
+                "end_pos": 790,
+                "new_tau": 9.7
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_2",
+                "start_time": 150,
+                "end_time": 480,
+                "start_pos": 230,
+                "end_pos": 420,
+                "new_tau": 6.6
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_0",
+                "start_time": 260,
+                "end_time": 520,
+                "start_pos": 770,
+                "end_pos": 830,
+                "new_tau": 7.1
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_0",
+                "start_time": 260,
+                "end_time": 820,
+                "start_pos": 780,
+                "end_pos": 1000,
+                "new_tau": 6.0
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_3",
+                "start_time": 750,
+                "end_time": 900,
+                "start_pos": 640,
+                "end_pos": 840,
+                "new_tau": 8.0
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_1",
+                "start_time": 530,
+                "end_time": 900,
+                "start_pos": 490,
+                "end_pos": 670,
+                "new_tau": 4.1
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_4",
+                "start_time": 160,
+                "end_time": 470,
+                "start_pos": 420,
+                "end_pos": 650,
+                "new_tau": 6.8
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_2",
+                "start_time": 540,
+                "end_time": 900,
+                "start_pos": 560,
+                "end_pos": 830,
+                "new_tau": 6.2
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_2",
+                "start_time": 590,
+                "end_time": 900,
+                "start_pos": 630,
+                "end_pos": 730,
+                "new_tau": 9.3
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_0",
+                "start_time": 720,
+                "end_time": 900,
+                "start_pos": 330,
+                "end_pos": 560,
+                "new_tau": 7.5
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_1",
+                "start_time": 720,
+                "end_time": 900,
+                "start_pos": 590,
+                "end_pos": 860,
+                "new_tau": 7.7
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_3",
+                "start_time": 670,
+                "end_time": 900,
+                "start_pos": 430,
+                "end_pos": 670,
+                "new_tau": 6.9
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_0",
+                "start_time": 180,
+                "end_time": 900,
+                "start_pos": 630,
+                "end_pos": 840,
+                "new_tau": 5.3
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_1",
+                "start_time": 190,
+                "end_time": 880,
+                "start_pos": 620,
+                "end_pos": 800,
+                "new_tau": 4.5
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_3",
+                "start_time": 660,
+                "end_time": 900,
+                "start_pos": 110,
+                "end_pos": 230,
+                "new_tau": 4.4
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_1",
+                "start_time": 240,
+                "end_time": 590,
+                "start_pos": 770,
+                "end_pos": 1000,
+                "new_tau": 4.9
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_4",
+                "start_time": 380,
+                "end_time": 900,
+                "start_pos": 730,
+                "end_pos": 1000,
+                "new_tau": 5.6
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_3",
+                "start_time": 300,
+                "end_time": 620,
+                "start_pos": 640,
+                "end_pos": 720,
+                "new_tau": 4.8
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_2",
+                "start_time": 690,
+                "end_time": 900,
+                "start_pos": 230,
+                "end_pos": 330,
+                "new_tau": 4.7
+            },
+            {
+                "edge_id": "e1",
+                "lane_id": "e1_1",
+                "start_time": 740,
+                "end_time": 900,
+                "start_pos": 460,
+                "end_pos": 650,
+                "new_tau": 9.4
+            }
+        ]
+    },
+    "reward": {
+        "neighbor_radius": 2,
+        "is_RSCI": false
+    },
+    "network": {
+        "kernel_dims": [
+            32,
+            64,
+            32
+        ]
+    },
+    "training": {
+        "discount": 0.95,
+        "target_update_period": 1000,
+        "learning_starts": 2000,
+        "lr_scheduler_mode": "piecewise",
+        "lr_scheduler_params": {
+            "decay_step": 2000,
+            "outside_value": 5e-1
+        },
+        "exploration_scheduler_params": {
+            "init_value": 1.0,
+            "decay_step": 2000,
+            "outside_value": 0.01
+        },
+        "use_gpu": true,
+        "gpu_id": 0,
+        "total_steps": 300000,
+        "replay_buffer_size": 50000
+    },
+    "eval": {
+        "exclude_warm_start": true,
+        "max_time": 900,
+        "num_episodes": 10,
+        "num_steps": 1000,
+        "evaluation_period": 2000,
+        "is_eval_baseline": false
+    }
+}

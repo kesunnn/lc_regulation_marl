@@ -1,0 +1,57 @@
+{
+    "meta": {
+        "experiment_name": "dqn_test"
+    },
+    "simulation": {
+        "env_name": "TrafficEnv_lane5_3",
+        "max_time": 900,
+        "grid_length": 100.0,
+        "density_level": 0.15,
+        "state_normalize": true,
+        "fundamental_diagram_name": "IDM",
+        "vehicle_generator": "generate_vehicle_flows_from_IDM_FD",
+        "event_generator_mode": "loop",
+        "event_generator": "dummy_event_generator",
+        "event_generator_parameters": [
+            {}
+        ]
+    },
+    "reward": {
+        "neighbor_radius": 2,
+        "is_RSCI": false
+    },
+    "network": {
+        "kernel_dims": [
+            32,
+            64,
+            32
+        ]
+    },
+    "training": {
+        "discount": 0.95,
+        "target_update_period": 1000,
+        "learning_starts": 2000,
+        "lr_scheduler_mode": "piecewise",
+        "lr_scheduler_params": {
+            "decay_step": 2000,
+            "outside_value": 5e-1
+        },
+        "exploration_scheduler_params": {
+            "init_value": 1.0,
+            "decay_step": 2000,
+            "outside_value": 0.01
+        },
+        "use_gpu": true,
+        "gpu_id": 0,
+        "total_steps": 300000,
+        "replay_buffer_size": 50000
+    },
+    "eval": {
+        "exclude_warm_start": true,
+        "max_time": 900,
+        "num_episodes": 10,
+        "num_steps": 1000,
+        "evaluation_period": 2000,
+        "is_eval_baseline": false
+    }
+}
