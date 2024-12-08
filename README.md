@@ -16,6 +16,7 @@ git clone git@github.com:blackiny/lc_regulation_marl.git
 
 System: Ubuntu 20.04.6 LTS  
 Python version: 3.9.19  
+SUMO version: 1.20.0
 
 If needed, install missing Python dependencies:
 
@@ -45,7 +46,7 @@ $PROJECT_ROOT_DIR/pde_rl_control
 ## Training and Evaluation
 Example configuration files for training and evaluation can be found in the following directories:  
 Training: `$PROJECT_ROOT_DIR/pde_rl_control/experiments/train`  
-Evaluation: `$PROJECT_ROOT_DIR/pde_rl_control/experiments/eval`.
+Evaluation: `$PROJECT_ROOT_DIR/pde_rl_control/experiments/eval`
 
 ### Training
 
