@@ -44,10 +44,11 @@ def make_dqn_basic_config(config_file):
                 lr_scheduler_params = basic_conf['training'].get("lr_scheduler_params", {})
                 _outside_value = lr_scheduler_params.get("outside_value", 5e-1)
                 _decay_step = lr_scheduler_params.get("decay_step", 20000)
-                if _total_steps / 2 <= _decay_step:
-                    pieces = [(0, 1), (_total_steps / 2, _outside_value)]
+                _stop_step = lr_scheduler_params.get("stop_step", _total_steps / 2)
+                if _stop_step <= _decay_step:
+                    pieces = [(0, 1), (_stop_step, _outside_value)]
                 else:
-                    pieces = [(0, 1), (_decay_step, 1), (_total_steps / 2, _outside_value)]
+                    pieces = [(0, 1), (_decay_step, 1), (_stop_step, _outside_value)]
                 return torch.optim.lr_scheduler.LambdaLR(optimizer,
                         PiecewiseSchedule(endpoints=pieces, outside_value=_outside_value).value)
             basic_conf['training']['lr_scheduler_mode'] = make_lr_schedule
@@ -61,10 +62,11 @@ def make_dqn_basic_config(config_file):
         _init_value = exploration_scheduler_params.get("init_value", 1.0)
         _decay_step = exploration_scheduler_params.get("decay_step", 20000)
         _outside_value = exploration_scheduler_params.get("outside_value", 0.01)
-        if _total_steps / 2 <= _decay_step:
-            pieces = [(0, _init_value), (_total_steps / 2, _outside_value)]
+        _stop_step = exploration_scheduler_params.get("stop_step", _total_steps / 2)
+        if _stop_step <= _decay_step:
+            pieces = [(0, _init_value), (_stop_step, _outside_value)]
         else:
-            pieces = [(0, _init_value), (_decay_step, _init_value), (_total_steps / 2, _outside_value)]
+            pieces = [(0, _init_value), (_decay_step, _init_value), (_stop_step, _outside_value)]
         exploration_schedule = PiecewiseSchedule(endpoints=pieces, outside_value=_outside_value)
         return exploration_schedule
     basic_conf["training"]["exploration_schedule"] = make_exploration_schedule()
