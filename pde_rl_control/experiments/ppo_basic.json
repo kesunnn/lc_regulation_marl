@@ -1,0 +1,68 @@
+{
+    "meta": {},
+    "simulation": {
+        "env_name": "TrafficEnv_lane5_1",
+        "grid_length": 50.0,
+        "control_rate": 1.0,
+        "density_level": 0.1,
+        "is_gui": false,
+        "max_time": 1800,
+        "delta_T": 4.0,
+        "warm_start_time": 0,
+        "fundamental_diagram_name": "triangular",
+        "vehicle_generator": "generate_vehicle_flows_from_triangular_FD",
+        "event_generator_mode": "loop",
+        "event_generator": "dummy_event_generator",
+        "event_generator_parameters": [
+            {}
+        ],
+        "state_normalize": false
+    },
+    "reward": {
+        "step": 1.0,
+        "neighbor_radius": 5,
+        "SPI_w": 0.5,
+        "LoS_w": 0.5,
+        "is_RSCI": true,
+        "is_control_rate_weighted": false,
+        "is_LoS_punish_free": true
+    },
+    "network": {
+        "kernel_dims": [
+            32,
+            64,
+            64
+        ]
+    },
+    "training": {
+        "discount": 0.99,
+        "gae_lambda": 0.95,
+        "clip_epsilon": 0.2,
+        "value_loss_coeff": 0.5,
+        "clip_grad_norm": 0.5,
+        "ppo_epochs": 4,
+        "flatten_batch_size": 32,
+        "lr_scheduler_mode": "constant",
+        "lr_scheduler_params": {
+            "factor": 1.0
+        },
+        "entropy_coeff_scheduler_params": {
+            "init_value": 0.1,
+            "decay_step": 10000,
+            "outside_value": 0.01
+        },
+        "learning_rate": 3e-4,
+        "adam_eps": 1e-5,
+        "use_gpu": true,
+        "gpu_id": 0,
+        "total_steps": 100000
+    },
+    "eval": {
+        "exclude_warm_start": true,
+        "max_time": 1800,
+        "num_episodes": 10,
+        "num_steps": 1000,
+        "evaluation_period": 1000,
+        "is_eval_baseline": false
+    }
+}
