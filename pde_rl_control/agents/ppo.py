@@ -10,6 +10,7 @@ import numpy as np
 
 # %%
 import pde_rl_control.utils.pytorch_util as ptu
+from pde_rl_control.configs.schedule import ConstantSchedule, PiecewiseSchedule, LinearSchedule
 
 # %%
 class ActorCritic(nn.Module):
@@ -83,7 +84,6 @@ class PPOAgent(nn.Module):
 	gae_lambda: float = 0.95
 	clip_epsilon: float = 0.2
 	value_loss_coeff: float = 0.5
-	entropy_coeff: float = 0.01
 	clip_grad_norm: float = 0.5
 	ppo_epochs: int = 10
 	flatten_batch_size: int = 64
@@ -104,7 +104,6 @@ class PPOAgent(nn.Module):
 		self.gae_lambda = training_config["gae_lambda"] if "gae_lambda" in training_config else self.gae_lambda
 		self.clip_epsilon = training_config["clip_epsilon"] if "clip_epsilon" in training_config else self.clip_epsilon
 		self.value_loss_coeff = training_config["value_loss_coeff"] if "value_loss_coeff" in training_config else self.value_loss_coeff
-		self.entropy_coeff = training_config["entropy_coeff"] if "entropy_coeff" in training_config else self.entropy_coeff
 		self.clip_grad_norm = training_config["clip_grad_norm"] if "clip_grad_norm" in training_config else self.clip_grad_norm
 		self.ppo_epochs = training_config["ppo_epochs"] if "ppo_epochs" in training_config else self.ppo_epochs
 		self.flatten_batch_size = training_config["flatten_batch_size"] if "flatten_batch_size" in training_config else self.flatten_batch_size
@@ -114,6 +113,7 @@ class PPOAgent(nn.Module):
 
 		self.optimizer = self._make_optimizer(self.actor_critic.parameters())
 		self.lr_scheduler = self._make_lr_schedule(self.optimizer)
+		self.entropy_coeff_scheduler = self._make_entropy_coeff_schedule()
 
 	def _make_optimizer(self, params):
 		return torch.optim.Adam(params, lr=self.learning_rate, eps=self.adam_eps)
@@ -130,6 +130,20 @@ class PPOAgent(nn.Module):
 			return self.lr_scheduler_mode(optimizer)
 		else:
 			raise ValueError(f"Invalid lr_scheduler: {self.lr_scheduler_mode}")
+	
+	def _make_entropy_coeff_schedule(self):
+		entropy_coeff_scheduler_params = self.training_config.get("entropy_coeff_scheduler_params", {})
+		_total_steps = self.training_config['total_steps']
+		_init_value = entropy_coeff_scheduler_params.get("init_value", 1.0)
+		_decay_step = entropy_coeff_scheduler_params.get("decay_step", 20000)
+		_outside_value = entropy_coeff_scheduler_params.get("outside_value", 0.01)
+		_stop_step = entropy_coeff_scheduler_params.get("stop_step", _total_steps / 2)
+		if _stop_step <= _decay_step:
+				pieces = [(0, _init_value), (_stop_step, _outside_value)]
+		else:
+				pieces = [(0, _init_value), (_decay_step, _init_value), (_stop_step, _outside_value)]
+		exploration_schedule = PiecewiseSchedule(endpoints=pieces, outside_value=_outside_value)
+		return exploration_schedule
 
 	def get_action(self, state: np.ndarray, epsilon: float = 0.0) -> int:
 		"""
@@ -177,7 +191,7 @@ class PPOAgent(nn.Module):
 		return advantages, returns
 
 	def update_actor_critic(self, states: torch.Tensor, actions: torch.Tensor, old_log_probs: torch.Tensor, 
-						   returns: torch.Tensor, advantages: torch.Tensor) -> dict:
+						   returns: torch.Tensor, advantages: torch.Tensor, step: int) -> dict:
 		"""Update the actor-critic network using PPO with mini-batch updates."""
 		
 		# Normalize advantages
@@ -224,7 +238,8 @@ class PPOAgent(nn.Module):
 				entropy_loss = -entropy.mean()
 				
 				# Combined loss
-				loss = policy_loss + self.value_loss_coeff * value_loss + self.entropy_coeff * entropy_loss
+				entropy_coeff = self.entropy_coeff_scheduler.value(step)
+				loss = policy_loss + self.value_loss_coeff * value_loss + entropy_coeff * entropy_loss
 				
 				# Update network
 				self.optimizer.zero_grad()
@@ -294,7 +309,7 @@ class PPOAgent(nn.Module):
 		
 		# Update actor-critic
 		actor_critic_stats = self.update_actor_critic(states_train, actions_train, old_log_probs_train, 
-													  returns_train, advantages_train)
+													  returns_train, advantages_train, step)
 		
 		return actor_critic_stats
 
