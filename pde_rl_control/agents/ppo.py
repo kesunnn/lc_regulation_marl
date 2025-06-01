@@ -86,6 +86,7 @@ class PPOAgent(nn.Module):
 	entropy_coeff: float = 0.01
 	clip_grad_norm: float = 0.5
 	ppo_epochs: int = 10
+	flatten_batch_size: int = 64
 	lr_scheduler_mode: str = "constant"
 
 	def __init__(self, env, network_config, training_config):
@@ -106,6 +107,7 @@ class PPOAgent(nn.Module):
 		self.entropy_coeff = training_config["entropy_coeff"] if "entropy_coeff" in training_config else self.entropy_coeff
 		self.clip_grad_norm = training_config["clip_grad_norm"] if "clip_grad_norm" in training_config else self.clip_grad_norm
 		self.ppo_epochs = training_config["ppo_epochs"] if "ppo_epochs" in training_config else self.ppo_epochs
+		self.flatten_batch_size = training_config["flatten_batch_size"] if "flatten_batch_size" in training_config else self.flatten_batch_size
 		self.lr_scheduler_mode = training_config["lr_scheduler_mode"] if "lr_scheduler_mode" in training_config else self.lr_scheduler_mode
 		self.learning_rate = training_config["learning_rate"] if "learning_rate" in training_config else self.learning_rate
 		self.adam_eps = training_config["adam_eps"] if "adam_eps" in training_config else self.adam_eps
@@ -176,7 +178,7 @@ class PPOAgent(nn.Module):
 
 	def update_actor_critic(self, states: torch.Tensor, actions: torch.Tensor, old_log_probs: torch.Tensor, 
 						   returns: torch.Tensor, advantages: torch.Tensor) -> dict:
-		"""Update the actor-critic network using PPO."""
+		"""Update the actor-critic network using PPO with mini-batch updates."""
 		
 		# Normalize advantages
 		advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
@@ -185,47 +187,66 @@ class PPOAgent(nn.Module):
 		total_value_loss = 0
 		total_entropy_loss = 0
 		total_loss = 0
+		total_batches = 0
+		
+		flatten_size = states.shape[0]
 		
 		for epoch in range(self.ppo_epochs):
-			# Get current policy and value predictions
-			states_input = torch.permute(states, (0, 3, 1, 2))  # (batch_size, H, W, C) -> (batch_size, C, H, W)
-			log_probs, entropy, values = self.actor_critic.evaluate_actions(states_input, actions)
+			# Shuffle data for each epoch
+			indices = torch.randperm(flatten_size)
 			
-			# Compute policy loss with clipping
-			ratio = torch.exp(log_probs - old_log_probs)
-			surr1 = ratio * advantages
-			surr2 = torch.clamp(ratio, 1 - self.clip_epsilon, 1 + self.clip_epsilon) * advantages
-			policy_loss = -torch.min(surr1, surr2).mean()
-			
-			# Compute value loss
-			value_loss = F.mse_loss(values, returns)
-			
-			# Compute entropy loss
-			entropy_loss = -entropy.mean()
-			
-			# Combined loss
-			loss = policy_loss + self.value_loss_coeff * value_loss + self.entropy_coeff * entropy_loss
-			
-			# Update network
-			self.optimizer.zero_grad()
-			loss.backward()
-			grad_norm = torch.nn.utils.clip_grad.clip_grad_norm_(
-				self.actor_critic.parameters(), self.clip_grad_norm or float("inf")
-			)
-			self.optimizer.step()
-			
-			total_policy_loss += policy_loss.item()
-			total_value_loss += value_loss.item()
-			total_entropy_loss += entropy_loss.item()
-			total_loss += loss.item()
+			# Process in mini-batches
+			for start_idx in range(0, flatten_size, self.flatten_batch_size):
+				end_idx = min(start_idx + self.flatten_batch_size, flatten_size)
+				batch_indices = indices[start_idx:end_idx]
+				
+				# Get mini-batch data
+				batch_states = states[batch_indices]
+				batch_actions = actions[batch_indices]
+				batch_old_log_probs = old_log_probs[batch_indices]
+				batch_returns = returns[batch_indices]
+				batch_advantages = advantages[batch_indices]
+				
+				# Get current policy and value predictions
+				states_input = torch.permute(batch_states, (0, 3, 1, 2))  # (batch_size, H, W, C) -> (batch_size, C, H, W)
+				log_probs, entropy, values = self.actor_critic.evaluate_actions(states_input, batch_actions)
+				
+				# Compute policy loss with clipping
+				ratio = torch.exp(log_probs - batch_old_log_probs)
+				surr1 = ratio * batch_advantages
+				surr2 = torch.clamp(ratio, 1 - self.clip_epsilon, 1 + self.clip_epsilon) * batch_advantages
+				policy_loss = -torch.min(surr1, surr2).mean()
+				
+				# Compute value loss
+				value_loss = F.mse_loss(values, batch_returns)
+				
+				# Compute entropy loss
+				entropy_loss = -entropy.mean()
+				
+				# Combined loss
+				loss = policy_loss + self.value_loss_coeff * value_loss + self.entropy_coeff * entropy_loss
+				
+				# Update network
+				self.optimizer.zero_grad()
+				loss.backward()
+				grad_norm = torch.nn.utils.clip_grad.clip_grad_norm_(
+					self.actor_critic.parameters(), self.clip_grad_norm or float("inf")
+				)
+				self.optimizer.step()
+				
+				total_policy_loss += policy_loss.item()
+				total_value_loss += value_loss.item()
+				total_entropy_loss += entropy_loss.item()
+				total_loss += loss.item()
+				total_batches += 1
 		
 		self.lr_scheduler.step()
 		
 		return {
-			"policy_loss": total_policy_loss / self.ppo_epochs,
-			"value_loss": total_value_loss / self.ppo_epochs,
-			"entropy_loss": total_entropy_loss / self.ppo_epochs,
-			"total_loss": total_loss / self.ppo_epochs,
+			"policy_loss": total_policy_loss / total_batches,
+			"value_loss": total_value_loss / total_batches,
+			"entropy_loss": total_entropy_loss / total_batches,
+			"total_loss": total_loss / total_batches,
 			"values": values.mean().item(),
 			"returns": returns.mean().item(),
 			"advantages": advantages.mean().item(),
