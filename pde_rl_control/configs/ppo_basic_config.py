@@ -3,18 +3,17 @@ import json, os, time
 import numpy as np
 from pde_rl_control.configs.schedule import ConstantSchedule, PiecewiseSchedule, LinearSchedule
 import torch
-from pde_rl_control.utils.logger import Logger
 
 # %%
 import pde_rl_control.utils.event_generator as env_event_gen
 import pde_rl_control.utils.vehicle_generator as env_vehicle_gen
 
 # %%
-dqn_basic_config_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../experiments/dqn_basic.json")
+ppo_basic_config_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../experiments/ppo_basic.json")
 
 # %%
-def make_dqn_basic_config(config_file):
-    with open(dqn_basic_config_file, "r") as f:
+def make_ppo_basic_config(config_file):
+    with open(ppo_basic_config_file, "r") as f:
         basic_conf = json.load(f)
     with open(config_file, "r") as f:
         conf = json.load(f)
@@ -54,26 +53,10 @@ def make_dqn_basic_config(config_file):
             basic_conf['training']['lr_scheduler_mode'] = make_lr_schedule
         else:
             raise ValueError("Invalid lr_scheduler_mode: {}".format(lr_scheduler_mode))
-    
-    # exploration scheduler
-    def make_exploration_schedule():
-        exploration_scheduler_params = basic_conf['training'].get("exploration_scheduler_params", {})
-        _total_steps = basic_conf['training']['total_steps']
-        _init_value = exploration_scheduler_params.get("init_value", 1.0)
-        _decay_step = exploration_scheduler_params.get("decay_step", 20000)
-        _outside_value = exploration_scheduler_params.get("outside_value", 0.01)
-        _stop_step = exploration_scheduler_params.get("stop_step", _total_steps / 2)
-        if _stop_step <= _decay_step:
-            pieces = [(0, _init_value), (_stop_step, _outside_value)]
-        else:
-            pieces = [(0, _init_value), (_decay_step, _init_value), (_stop_step, _outside_value)]
-        exploration_schedule = PiecewiseSchedule(endpoints=pieces, outside_value=_outside_value)
-        return exploration_schedule
-    basic_conf["training"]["exploration_schedule"] = make_exploration_schedule()
 
     # log dir
     log_string = "{}_{}_d{}".format(
-        basic_conf["meta"]["experiment_name"] if "experiment_name" in basic_conf["meta"] else "dqn",
+        basic_conf["meta"]["experiment_name"] if "experiment_name" in basic_conf["meta"] else "ppo",
         basic_conf["simulation"]["env_name"],
         int(basic_conf["training"]["discount"]*1000),
     )
@@ -89,20 +72,6 @@ def make_dqn_basic_config(config_file):
         os.makedirs(result_path)
 
     return basic_conf, conf_str
-
-
-# %%
-def make_logger(config: dict):
-    if "result_path" not in config["meta"]:
-        raise ValueError("result_path not found in config")
-    result_path = config["meta"]["result_path"]
-    logdir = "tf_logs"
-    logdir = os.path.join(result_path, logdir)
-    if not (os.path.exists(logdir)):
-        os.makedirs(logdir)
-    return Logger(logdir)
-
-# %%
 
 
 
