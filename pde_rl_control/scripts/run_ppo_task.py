@@ -1,229 +1,308 @@
 # %%
-import os
-import time
-import argparse
-import json
+import os, time, argparse, json
 import gym
 import numpy as np
 import torch
 import tqdm
 
-from pde_rl_control.agents.ppo import PPOAgent
+from pde_rl_control.agents.dqn import DQNAgent
 import pde_rl_control.utils.pytorch_util as ptu
 import pde_rl_control.configs as configs
 
+from pde_rl_control.utils.replay_buffer import ReplayBuffer
 from pde_rl_control.utils.eval import calculate_episode_reward, eval_episode
+from pde_rl_control.utils.u import process_data_by_method
+import pde_rl_control.environments
 
 # %%
 def run_training_loop(config: dict, logger, args: argparse.Namespace):
-    # 1. Set random seeds
-    np.random.seed(args.seed)
-    torch.manual_seed(args.seed)
-    use_gpu, gpu_id = config["training"]["use_gpu"], int(config["training"]["gpu_id"])
-    ptu.init_gpu(use_gpu=use_gpu, gpu_id=gpu_id)
+	# set random seeds
+	np.random.seed(args.seed)
+	torch.manual_seed(args.seed)
+	use_gpu, gpu_id = config["training"]["use_gpu"], int(config["training"]["gpu_id"])
+	ptu.init_gpu(use_gpu=use_gpu, gpu_id=gpu_id)
 
-    # 2. Create the Gym environment
-    env = gym.make(
-        config["simulation"]["env_name"],
-        disable_env_checker=True,
-        grid_length=config["simulation"]["grid_length"],
-        control_rate=config["simulation"]["control_rate"],
-        density_level=config["simulation"]["density_level"],
-        event_generator=config["simulation"]["event_generator"],
-        vehicle_generator=config["simulation"]["vehicle_generator"],
-        config=config
-    )
+	# make the gym environment
+	env = gym.make(
+		config["simulation"]["env_name"],
+		disable_env_checker=True,
+		grid_length=config["simulation"]["grid_length"],
+		control_rate=config["simulation"]["control_rate"],
+		density_level=config["simulation"]["density_level"],
+		event_generator=config["simulation"]["event_generator"],
+		vehicle_generator=config["simulation"]["vehicle_generator"],
+		config=config
+	)
+	exploration_schedule = config["training"]["exploration_schedule"]
 
-    # 3. Instantiate the PPO agent
-    network_config = config["network"]
-    training_config = config["training"]
-    agent = PPOAgent(
-        env=env,
-        network_config=network_config,
-        training_config=training_config
-    )
+	# create training agent
+	network_config = config["network"]
+	training_config = config["training"]
+	agent = DQNAgent(
+		env=env,
+		network_config=network_config,
+		training_config=training_config
+	)
 
-    # 4. Logging setup
-    total_updates = int(training_config["total_steps"])    # interpret as # of episodes
-    eval_interval = int(config["eval"]["evaluation_period"])
-    is_eval_baseline = bool(config["eval"]["is_eval_baseline"])
-    exclude_warm_start = bool(config["eval"]["exclude_warm_start"])
+	# ep_len = env.spec.max_episode_steps
 
-    model_save_dir = os.path.join(config["meta"]["result_path"], "models")
-    if not os.path.exists(model_save_dir):
-        os.makedirs(model_save_dir)
+	state = None
+	discount_factor = float(training_config["discount"])
+	episode_reward_dict = {"reward": [], "global_reward": [],
+						"reward_spi": [], "global_reward_spi": [],
+						"reward_los": [], "global_reward_los": []
+						}
+	# episode_agents_reward, episode_global_reward = [], []
+	# reward_metrics_methods = ["avg", "50pt", "90pt", "99pt", "min", "max"]
+	reward_metrics_methods = ["avg", "50pt", "90pt"]
 
-    # 5. Meta information for TensorBoard
-    meta_text = f"Env name: {config['simulation']['env_name']}\n"
-    meta_text += f"grid_length: {env.grid_length}, control_rate: {env.control_rate}, density_level: {env.density_level}\n"
-    meta_text += f"event_generator: {getattr(env.event_generator, '__name__', str(env.event_generator))}, "
-    meta_text += f"vehicle_generator: {getattr(env.vehicle_generator, '__name__', str(env.vehicle_generator))}\n"
-    meta_text += f"PPO discount: {agent.discount}, GAE lambda: {agent.gae_lambda}, clip_epsilon: {agent.clip_epsilon}\n"
-    logger.log_text(meta_text, "meta", 0)
-    logger.flush()
+	# Replay buffer
+	replay_buffer = ReplayBuffer(capacity=int(config["training"]["replay_buffer_size"]))
 
-    global_step = 0
-    for update_idx in tqdm.trange(total_updates, dynamic_ncols=True):
-        # 6. Collect exactly one episode (no replay buffer)
-        states_list, actions_list, rewards_list, next_states_list, dones_list = [], [], [], [], []
+	def reset_env_training():
+		nonlocal state
 
-        state = env.reset()
-        if isinstance(state, tuple):
-            # Ensure state is a single array (old Gym API)
-            state = state[0]
-        state = np.asarray(state)
+		state = env.reset()
+		assert not isinstance(state, tuple), "env.reset() must return np.ndarray - make sure your Gym version uses the old step API"
+		state = np.asarray(state)
+		return
 
-        done = False
-        episode_reward = 0.0
-        episode_length = 0
+	reset_env_training()
 
-        while not done:
-            # 6.1. Get action (no exploration epsilon by default, can be scheduled if you like)
-            action = agent.get_action(state, epsilon=0.0)
+	total_steps = int(config["training"]["total_steps"])
+	learning_start_steps = int(config["training"]["learning_starts"])
+	batch_size = int(config["training"]["batch_size"])
+	evaluation_period = int(config["eval"]["evaluation_period"])
+	is_eval_baseline = bool(config["eval"]["is_eval_baseline"])
+	exclude_warm_start = bool(config["eval"]["exclude_warm_start"])
+	model_save_dir = os.path.join(config["meta"]["result_path"], "models")
+	if not (os.path.exists(model_save_dir)):
+		os.makedirs(model_save_dir)
+	# dummy action used in warm_start phase
+	dummy_action = np.ones((env.num_lanes, env.n_agents_per_lane), dtype=int)
+	is_add_graph = False
+	# log key information text in the tensorboard
+	meta_text = "Env name: {}\n".format(config["simulation"]["env_name"])
+	meta_text += "desired_rho: {}, desired_flow: {}, desired_velocity: {}, desired_traffic_condition: {}\n".\
+				format(env.desired_rho, env.desired_flow, env.desired_velocity, env.desired_traffic_condition)
+	meta_text += "grid_length: {}, control_rate: {}, density_level: {}\n".\
+				format(env.grid_length, env.control_rate, env.density_level)
+	meta_text += "event_generator: {}, event_generator_mode:{}, vehicle_generator: {}, fundamental_diagram_name:{}\n".\
+				format(getattr(env.event_generator, "__name__", str(env.event_generator)), env.event_generator_mode, \
+						getattr(env.vehicle_generator, "__name__", str(env.vehicle_generator)), env.fundamental_diagram_name)
+	meta_text += "reward_gamma: {}, is_eval_baseline: {}, exclude_warm_start: {}\n".\
+				format(discount_factor, is_eval_baseline, exclude_warm_start)
+	logger.log_text(meta_text, "meta", 0)
+	logger.flush()
+	for step in tqdm.trange(total_steps, dynamic_ncols=True):
+		assert learning_start_steps * float(config["simulation"]["delta_T"]) > env.warm_start_time, "Learning starts should be larger than warm start steps to avoid empty replay buffer"
+		if not env.warm_start_finish:
+			action = dummy_action
+		else:
+			epsilon = exploration_schedule.value(step)
+			# Compute action
+			action = agent.get_action(state=state, epsilon=epsilon)
 
-            next_state, reward, done, info = env.step(action)
-            if isinstance(next_state, tuple):
-                next_state = next_state[0]
-            next_state = np.asarray(next_state)
+		# Step the environment
+		next_state, reward, done, info = env.step(action)
 
-            # 6.2. Store to trajectory buffers
-            states_list.append(state)
-            actions_list.append(action)
-            rewards_list.append(reward)
-            next_states_list.append(next_state)
-            dones_list.append(done)
+		if env.warm_start_finish:
+			# Add the data to the replay buffer
+			replay_buffer.insert(state, action, reward, next_state, done)
+			if step >= learning_start_steps and step % args.log_interval == 0 and epsilon < 1e-1:
+				# Log the action allow rate per lane
+				action_allow_rate = info["action_allow_rate"]
+				for lane_id, rate_dict in action_allow_rate.items():
+					logger.log_scalars(rate_dict, f"action_allow_rate/{lane_id}", step)
+				logger.flush()
 
-            state = next_state
-            episode_reward += np.mean(reward)  # average reward over grid
-            episode_length += 1
+		if not exclude_warm_start or env.warm_start_finish:
+			# Update episode reward
+			for k in episode_reward_dict.keys():
+				episode_reward_dict[k].append(info[k])
+			# episode_agents_reward.append(info["reward"])
+			# episode_global_reward.append(info["global_reward"])
 
-        # 7. Convert lists → NumPy arrays, then to Torch tensors
-        # Shapes: (1, ep_len, H, W, C) / (1, ep_len, H, W)
-        ep_len = len(states_list)
-        states_np = np.stack(states_list, axis=0)        # (ep_len, H, W, C)
-        actions_np = np.stack(actions_list, axis=0)      # (ep_len, H, W)
-        rewards_np = np.stack(rewards_list, axis=0)      # (ep_len, H, W)
-        next_states_np = np.stack(next_states_list, axis=0)
-        dones_np = np.stack(dones_list, axis=0).astype(np.float32)  # treat done as float
+		# Handle episode termination
+		if done:
+			reset_env_training()
+			# agent_avg_reward = calculate_episode_reward(episode_agents_reward, discount_factor)
+			# global_avg_reward = calculate_episode_reward(episode_global_reward, discount_factor)
+			for k, v in episode_reward_dict.items():
+				reward_metrics = {}
+				avg_reward = calculate_episode_reward(v, discount_factor)
+				for method in reward_metrics_methods:
+					reward_metrics[method] = process_data_by_method(avg_reward, method)
+				logger.log_scalars(reward_metrics, f"training_episode_{k}", step)
+			episode_reward_dict = {"reward": [], "global_reward": [],
+						"reward_spi": [], "global_reward_spi": [],
+						"reward_los": [], "global_reward_los": []
+						}
+			# episode_agents_reward, episode_global_reward = [], []
+			if info["is_collision"]:
+				logger.log_scalar(len(info["collision_vehicles"]), "train_collisions", step)
+			
+			logger.log_scalar(info["end_time"], "episode_length", step)
+			# episode reward
+			# if agent_avg_reward is not None:
+			# 	agent_reward_metrics = {}
+			# 	for method in reward_metrics_methods:
+			# 		agent_reward_metrics[method] = process_data_by_method(agent_avg_reward, method)
+			# 	logger.log_scalars(agent_reward_metrics, "training_episode_agent_reward", step)
+			# else:
+			# 	print("Warning: agent_avg_reward is None at step {}".format(step))
+			# if global_avg_reward is not None:
+			# 	global_reward_metrics = {}
+			# 	for method in reward_metrics_methods:
+			# 		global_reward_metrics[method] = process_data_by_method(global_avg_reward, method)
+			# 	logger.log_scalars(global_reward_metrics, "training_episode_global_reward", step)
+			# else:
+			# 	print("Warning: global_avg_reward is None at step {}".format(step))
+			logger.flush()
 
-        # Add a leading batch dimension
-        states_np = states_np[np.newaxis, ...]       # (1, ep_len, H, W, C)
-        actions_np = actions_np[np.newaxis, ...]     # (1, ep_len, H, W)
-        rewards_np = rewards_np[np.newaxis, ...]     # (1, ep_len, H, W)
-        next_states_np = next_states_np[np.newaxis, ...]
-        dones_np = dones_np[np.newaxis, ...]         # (1, ep_len, H, W)
+			# detector metrics
+			detector_metrics = info["detector_metrics"]
+			for k, v in detector_metrics.items():
+				if isinstance(v, dict):
+					for lane_id, lane_data in v.items():
+						logger.log_scalars(lane_data, f'{k}/lane_{lane_id}', step)
+			logger.flush()
 
-        # Convert to Torch tensors
-        states_tensor = ptu.from_numpy(states_np)
-        actions_tensor = ptu.from_numpy(actions_np)
-        rewards_tensor = ptu.from_numpy(rewards_np)
-        next_states_tensor = ptu.from_numpy(next_states_np)
-        dones_tensor = ptu.from_numpy(dones_np)
+			# metrics of the episode
+			eval_metrics = info["simulation_metrics"]
+			for k, v in eval_metrics.items():
+				if isinstance(v, dict):
+					logger.log_scalars(v, f'episode_metrics/{k}', step)
+				else:
+					logger.log_scalar(v, f'episode_metrics/{k}', step)
+			logger.flush()
+		else:
+			state = next_state
 
-        # 8. Perform a PPO update on this single‐episode batch
-        update_info = agent.update(
-            states=states_tensor,
-            actions=actions_tensor,
-            rewards=rewards_tensor,
-            next_states=next_states_tensor,
-            dones=dones_tensor,
-            step=global_step
-        )
+		# Main DQN training loop
+		if step >= learning_start_steps:
+			# Sample config["batch_size"] samples from the replay buffer
+			batch_np = replay_buffer.sample(batch_size)
 
-        # 9. Logging: training losses, entropy, etc.
-        update_info["episode_reward"] = episode_reward
-        update_info["episode_length"] = episode_length
-        logger.log_scalars(update_info, "ppo_train", global_step)
-        logger.flush()
+			# Convert to PyTorch tensors
+			batch = ptu.from_numpy(batch_np)
+			if not is_add_graph:
+				test_batch = ptu.from_numpy(replay_buffer.sample(5))
+				logger._summ_writer.add_graph(agent.critic, torch.permute(test_batch["observations"], (0, 3, 1, 2)))
+				logger.flush()
+				is_add_graph = True
 
-        # 10. Periodically save & evaluate
-        if (update_idx + 1) % eval_interval == 0:
-            # 10.1 Save model
-            agent.save(model_save_dir, global_step)
+			#Train the agent. `batch` is a dictionary of numpy arrays
+			update_info = agent.update(
+				state=batch["observations"],
+				action=batch["actions"],
+				reward=batch["rewards"],
+				next_state=batch["next_observations"],
+				done=batch["dones"],
+				step=step
+			)
 
-            # 10.2 Evaluate agent for one episode (vs. baseline if requested)
-            eval_len, eval_metrics, _, _, eval_rewards, _ = eval_episode(
-                env, agent, config["eval"]["num_steps"], exclude_warm_start
-            )
+			# Logging code
+			update_info["epsilon"] = epsilon
+			update_info["lr"] = agent.lr_scheduler.get_last_lr()[0]
 
-            if is_eval_baseline:
-                env.set_is_eval_baseline_flag(True)
-                eval_len_dummy, eval_metrics_dummy, _, _, eval_rewards_dummy, _ = eval_episode(
-                    env, agent, config["eval"]["num_steps"],
-                    exclude_warm_start, is_dummy_action=True,
-                    reset_vehicles=False, reset_event_generator=False
-                )
-                env.set_is_eval_baseline_flag(False)
-            else:
-                eval_len_dummy, eval_metrics_dummy, _, _, eval_rewards_dummy, _ = eval_episode(
-                    env, agent, config["eval"]["num_steps"],
-                    exclude_warm_start, is_dummy_action=True,
-                    reset_vehicles=False, reset_event_generator=False
-                )
+			if step % args.log_interval == 0:
+				# Log the training metrics
+				for k, v in update_info.items():
+					logger.log_scalar(v, k, step)
+				# logger.log_scalars(info["allow_rate"], "action_allow_rate", step)
+				logger.log_model(agent.critic, "critic", step)
+				# Log batch data and replay buffer size
+				batch_state_avg = np.mean(batch_np["observations"], axis=(1, 2))
+				batch_next_state_avg = np.mean(batch_np["next_observations"], axis=(1, 2))
+				batch_action_avg = np.mean(batch_np["actions"], axis=(1, 2))
+				batch_reward_avg = np.mean(batch_np["rewards"], axis=(1, 2))
+				for dim in range(batch_state_avg.shape[1]):
+					logger.log_histogram(batch_state_avg[:, dim], f"batch_state/dim_{dim}", step)
+					logger.log_histogram(batch_next_state_avg[:, dim], f"batch_next_state/dim_{dim}", step)
+				logger.log_histogram(batch_action_avg, f"batch_action", step)
+				logger.log_histogram(batch_reward_avg, f"batch_reward", step)
+				logger.log_histogram(batch_np["dones"], f"batch_done", step)
+				logger.log_scalar(len(replay_buffer), "replay_buffer_size", step)
+				logger.flush()
 
-            # 10.3 Compute discounted returns for plotting (optional)
-            eval_agent_return = calculate_episode_reward(eval_rewards, agent.discount)
-            eval_dummy_return = calculate_episode_reward(eval_rewards_dummy, agent.discount)
+			if step % evaluation_period == 0:
+				# save model
+				agent.save(model_save_dir, step)
+				# Evaluate the agent vs baseline (dummy action)
+				eval_episode_length, eval_metrics, _, _, eval_rewards, _ = \
+					eval_episode(env, agent, config["eval"]["num_steps"], exclude_warm_start)
+				if is_eval_baseline:
+					env.set_is_eval_baseline_flag(True)
+					eval_episode_length_dummy, eval_metrics_dummy, _, _, eval_rewards_dummy, _ = \
+						eval_episode(env, agent, config["eval"]["num_steps"], exclude_warm_start, is_dummy_action=True, reset_vehicles=False, reset_event_generator=False)
+					env.set_is_eval_baseline_flag(False)
+				else:
+					eval_episode_length_dummy, eval_metrics_dummy, _, _, eval_rewards_dummy, _ = \
+						eval_episode(env, agent, config["eval"]["num_steps"], exclude_warm_start, is_dummy_action=True, reset_vehicles=False, reset_event_generator=False)
+				eval_agent_avg_reward = calculate_episode_reward(eval_rewards, discount_factor)
+				eval_agent_avg_reward_dummy = calculate_episode_reward(eval_rewards_dummy, discount_factor)
+				logger.log_scalar(eval_episode_length, "eval_metrics/episode_length", step)
+				logger.log_scalar(eval_episode_length_dummy, "eval_metrics/episode_length:dummy", step)
+				for k, v in eval_metrics.items():
+					if isinstance(v, dict):
+						# merge eval_metrics with eval_metrics_dummy
+						for k2, v2 in eval_metrics_dummy[k].items():
+							v[k2 + ":dummy"] = v2
+						logger.log_scalars(v, f'eval_metrics/{k}', step)
+					else:
+						v_dummy = eval_metrics_dummy[k]
+						v_dict = {k: v, k + ":dummy": v_dummy}
+						logger.log_scalar(v_dict, f'eval_metrics/{k}', step)
+				if eval_agent_avg_reward is not None:
+					eval_agent_reward_metrics = {}
+					for method in reward_metrics_methods:
+						eval_agent_reward_metrics[method] = process_data_by_method(eval_agent_avg_reward, method)
+						eval_agent_reward_metrics[method + ":dummy"] = process_data_by_method(eval_agent_avg_reward_dummy, method)
+					logger.log_scalars(eval_agent_reward_metrics, "eval_metrics/rewards", step)
+				else:
+					print("Warning: eval_agent_avg_reward is None at step {}".format(step))
+				logger.flush()
+				env.set_eval_flag(False, reset_vehicles=True, reset_event_generator=True) # set the evaluation flag to False
+				reset_env_training()
+	env.close()
+	return
 
-            # 10.4 Log evaluation metrics
-            # Episode length
-            logger.log_scalar(eval_len, "eval/episode_length", global_step)
-            logger.log_scalar(eval_len_dummy, "eval/episode_length:dummy", global_step)
-
-            # For each metric (which may be dict or scalar)
-            for k, v in eval_metrics.items():
-                if isinstance(v, dict):
-                    # merge with dummy
-                    for subk, subv in eval_metrics_dummy[k].items():
-                        v[subk + ":dummy"] = subv
-                    logger.log_scalars(v, f"eval/{k}", global_step)
-                else:
-                    v_dummy = eval_metrics_dummy[k]
-                    logger.log_scalar({k: v, k + ":dummy": v_dummy}, f"eval/{k}", global_step)
-
-            # Log returns
-            logger.log_scalar(eval_agent_return, "eval/discounted_return", global_step)
-            logger.log_scalar(eval_dummy_return, "eval/discounted_return:dummy", global_step)
-            logger.flush()
-
-            env.set_eval_flag(False, reset_vehicles=True, reset_event_generator=True)
-
-        # 11. Advance global_step
-        global_step += 1
-
-    env.close()
-    return
 
 
 # %%
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--config_template", "-cfg_template", type=str, default="ppo_basic")
-    parser.add_argument("--config_file", "-cfg", type=str, required=True)
-    parser.add_argument("--seed", type=int, default=1)
-    parser.add_argument("--port", type=int, required=True)
+	parser = argparse.ArgumentParser()
+	parser.add_argument("--config_template", "-cfg_template", type=str, default="dqn_basic")
+	parser.add_argument("--config_file", "-cfg", type=str, required=True)
 
-    args = parser.parse_args()
-    cfg_template = args.config_template
-    if cfg_template not in configs.config_map:
-        raise ValueError(f"Invalid config template: {cfg_template}")
+	# parser.add_argument("--eval_interval", "-ei", type=int, default=10000)
+	# parser.add_argument("--num_eval_trajectories", "-neval", type=int, default=10)
+	# parser.add_argument("--num_render_trajectories", "-nvid", type=int, default=0)
 
-    config, config_str = configs.config_map[cfg_template](args.config_file)
-    logger = configs.make_logger(config)
+	parser.add_argument("--seed", type=int, default=1)
+	parser.add_argument("--log_interval", type=int, default=1000)
+	parser.add_argument("--port", type=int, required=True)
 
-    # Write out final config (with seed) to config.json
-    config_str = json.loads(config_str)
-    config_str["meta"] = config["meta"].copy()
-    config_str["meta"]["seed"] = args.seed
-    with open(os.path.join(config["meta"]["result_path"], "config.json"), "w") as f:
-        json.dump(config_str, f, indent=4)
+	args = parser.parse_args()
+	cfg_template = args.config_template
+	if cfg_template not in configs.config_map:
+		raise ValueError(f"Invalid config template: {cfg_template}")
 
-    # Inject TraCI port
-    config["simulation"]["traci_port"] = args.port
-
-    # Call the PPO training loop
-    run_training_loop(config, logger, args)
+	config, config_str = configs.config_map[cfg_template](args.config_file)
+	logger = configs.make_logger(config)
+	# write config_str to file
+	config_str = json.loads(config_str)
+	config_str["meta"] = config["meta"].copy()
+	config_str["meta"]["seed"] = args.seed
+	with open(os.path.join(config["meta"]["result_path"], "config.json"), "w") as f:
+		json.dump(config_str, f, indent=4)
+	config["simulation"]["traci_port"] = args.port
+	run_training_loop(config, logger, args)
 
 
 if __name__ == "__main__":
-    main()
+	main()
+
+
+
