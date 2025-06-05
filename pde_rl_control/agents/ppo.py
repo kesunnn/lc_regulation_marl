@@ -258,10 +258,11 @@ class PPOAgent(nn.Module):
 		self.lr_scheduler.step()
 		
 		return {
-			"policy_loss": total_policy_loss / total_batches,
-			"value_loss": total_value_loss / total_batches,
-			"entropy_loss": total_entropy_loss / total_batches,
-			"total_loss": total_loss / total_batches,
+			"loss/policy_loss": total_policy_loss / total_batches,
+			"loss/value_loss": total_value_loss / total_batches,
+			"loss/entropy_loss": total_entropy_loss / total_batches,
+			"loss/total_loss": total_loss / total_batches,
+			"loss/entropy_coeff": self.entropy_coeff_scheduler.value(step),
 			"values": values.mean().item(),
 			"returns": returns.mean().item(),
 			"advantages": advantages.mean().item(),

@@ -116,7 +116,6 @@ def run_training_loop(config: dict, logger, args: argparse.Namespace):
 
 		# Handle episode termination
 		if done:
-			states_list, actions_list, rewards_list, next_states_list, dones_list = [], [], [], [], []
 			states_np = np.stack(states_list, axis=0)             # (ep_len, H, W, C)
 			actions_np = np.stack(actions_list, axis=0)           # (ep_len, H, W)
 			rewards_np = np.stack(rewards_list, axis=0)           # (ep_len, H, W)
@@ -146,7 +145,6 @@ def run_training_loop(config: dict, logger, args: argparse.Namespace):
 					step=step
 			)
 			update_info["lr"] = agent.lr_scheduler.get_last_lr()[0]
-			update_info["entropy_coeff"] = agent.entropy_coeff_scheduler.value(step)
 			reset_env_training()
 			for k, v in episode_reward_dict.items():
 				reward_metrics = {}
@@ -163,6 +161,9 @@ def run_training_loop(config: dict, logger, args: argparse.Namespace):
 			
 			logger.log_scalar(info["end_time"], "episode_length", step)
 			logger.flush()
+
+			# Reset the lists for the next episode
+			states_list, actions_list, rewards_list, next_states_list, dones_list = [], [], [], [], []
 
 			# detector metrics
 			detector_metrics = info["detector_metrics"]
@@ -182,13 +183,14 @@ def run_training_loop(config: dict, logger, args: argparse.Namespace):
 			logger.flush()
 		else:
 			state = next_state
+			agent.lr_scheduler.step()
 
-		if step % args.log_interval == 0 and len(update_info) > 0:
+		if step % args.log_interval == 0 and step > 0 and len(update_info) > 0:
 			# Log the training metrics
 			for k, v in update_info.items():
 				logger.log_scalar(v, k, step)
 			# logger.log_scalars(info["allow_rate"], "action_allow_rate", step)
-			logger.log_model(agent.critic, "critic", step)
+			logger.log_model(agent.actor_critic, "critic", step)
 
 			# Log batch data and replay buffer size
 			ep_len = states_np.shape[1]  # (1, ep_len, H, W, C) -> ep_len
@@ -202,7 +204,7 @@ def run_training_loop(config: dict, logger, args: argparse.Namespace):
 			}
 			# Convert to PyTorch tensors
 			if not is_add_graph:
-				logger._summ_writer.add_graph(agent.actor_critic, torch.permute(batch_np["observations"], (0, 3, 1, 2)))
+				logger._summ_writer.add_graph(agent.actor_critic, torch.permute(ptu.from_numpy(batch_np["observations"]), (0, 3, 1, 2)))
 				logger.flush()
 				is_add_graph = True
 			batch_state_avg = np.mean(batch_np["observations"], axis=(1, 2))
@@ -217,7 +219,7 @@ def run_training_loop(config: dict, logger, args: argparse.Namespace):
 			logger.log_histogram(batch_np["dones"], f"batch_done", step)
 			logger.flush()
 
-		if step % evaluation_period == 0:
+		if step % evaluation_period == 0 and step > 0:
 			# save model
 			agent.save(model_save_dir, step)
 			# Evaluate the agent vs baseline (dummy action)
