@@ -6,6 +6,7 @@ import torch
 import tqdm
 
 from pde_rl_control.agents.dqn import DQNAgent
+from pde_rl_control.agents.ppo import PPOAgent
 import pde_rl_control.utils.pytorch_util as ptu
 import pde_rl_control.configs as configs
 
@@ -13,6 +14,11 @@ from pde_rl_control.utils.replay_buffer import ReplayBuffer
 from pde_rl_control.utils.eval import calculate_episode_reward, eval_episode
 from pde_rl_control.utils.u import process_data_by_method
 import pde_rl_control.environments
+
+AGENT_MAP = {
+	"dqn": DQNAgent,
+	"ppo": PPOAgent
+}
 
 # %%
 def run_eval_loop(config: dict, logger, args: argparse.Namespace):
@@ -33,23 +39,20 @@ def run_eval_loop(config: dict, logger, args: argparse.Namespace):
 		vehicle_generator=config["simulation"]["vehicle_generator"],
 		config=config
 	)
-	exploration_schedule = config["training"]["exploration_schedule"]
 
 	# create training agent
 	network_config = config["network"]
 	training_config = config["training"]
-	agent = DQNAgent(
+	agent_class = AGENT_MAP[args.agent]
+	agent = agent_class(
 		env=env,
 		network_config=network_config,
 		training_config=training_config
 	)
 
-	# ep_len = env.spec.max_episode_steps
-
 	state = None
 	discount_factor = float(training_config["discount"])
 	episode_agents_reward, episode_global_reward = [], []
-	# reward_metrics_methods = ["avg", "50pt", "90pt", "99pt", "min", "max"]
 	reward_metrics_methods = ["avg", "50pt", "90pt"]
 
 	def reset_env_training():
@@ -181,11 +184,12 @@ def main():
 	parser = argparse.ArgumentParser()
 	parser.add_argument("--config_template", "-cfg_template", type=str, default="dqn_basic")
 	parser.add_argument("--config_file", "-cfg", type=str, required=True)
-
-	# parser.add_argument("--eval_interval", "-ei", type=int, default=10000)
-	# parser.add_argument("--num_eval_trajectories", "-neval", type=int, default=10)
-	# parser.add_argument("--num_render_trajectories", "-nvid", type=int, default=0)
-
+	parser.add_argument(
+		"--agent",
+		choices=["dqn", "ppo"],
+		default="dqn",
+		help="Which type of agent to run: 'dqn' (default) or 'ppo'."
+	)
 	parser.add_argument("--seed", type=int, default=1)
 	parser.add_argument("--log_interval", type=int, default=1000)
 	parser.add_argument("--port", type=int, required=True)
