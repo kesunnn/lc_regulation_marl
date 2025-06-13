@@ -5,7 +5,7 @@
     "simulation": {
         "env_name": "TrafficEnv_lane5_3",
         "max_time": 900,
-        "grid_length": 50.0,
+        "grid_length": 100.0,
         "density_level": 0.1,
         "state_normalize": true,
         "fundamental_diagram_name": "IDM",
