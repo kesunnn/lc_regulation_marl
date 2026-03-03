@@ -1,6 +1,7 @@
 #experiment files
 sumo_cfgs_dqn_*
 outputs
+*.out
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

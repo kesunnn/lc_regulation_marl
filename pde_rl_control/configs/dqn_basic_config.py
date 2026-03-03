@@ -18,7 +18,6 @@ def make_dqn_basic_config(config_file):
         basic_conf = json.load(f)
     with open(config_file, "r") as f:
         conf = json.load(f)
-    config_file_name = os.path.basename(config_file)
     conf_fields = ['meta', 'simulation', 'reward', 'network', 'training', 'eval']
     for field in conf_fields:
         if field in conf:
@@ -72,12 +71,7 @@ def make_dqn_basic_config(config_file):
     basic_conf["training"]["exploration_schedule"] = make_exploration_schedule()
 
     # log dir
-    log_string = "{}_{}_d{}".format(
-        basic_conf["meta"]["experiment_name"] if "experiment_name" in basic_conf["meta"] else "dqn",
-        basic_conf["simulation"]["env_name"],
-        int(basic_conf["training"]["discount"]*1000),
-    )
-    log_string += "_{}".format(config_file_name.split(".")[0])
+    log_string = basic_conf["meta"].get("experiment_name", "dqn")
     result_root_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../../results")
     if not (os.path.exists(result_root_path)):
         os.makedirs(result_root_path)

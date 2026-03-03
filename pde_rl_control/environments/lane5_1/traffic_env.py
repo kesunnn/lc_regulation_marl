@@ -258,6 +258,9 @@ class Traffic_Env(gym.Env):
 		state = self._get_state()
 		if not step_rewards:
 			print("done: {}, is_collision: {}, curr_time: {:.2f}".format(done, info["is_collision"], info["end_time"]))
+			# If the episode terminates before the first reward window (e.g., early collision),
+			# fallback to a single reward sample to keep training loop stable.
+			step_rewards.append(self._get_step_reward(state, info))
 		reward, global_reward = self._get_reward(step_rewards, info)
 		info["reward"] = reward
 		info["global_reward"] = global_reward
