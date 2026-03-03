@@ -51,13 +51,14 @@ def run_eval_loop(config: dict, logger, args: argparse.Namespace):
 		vehicle_generator=config["simulation"]["vehicle_generator"],
 		config=config
 	)
+	base_env = env.unwrapped
 
 	# create training agent
 	network_config = config["network"]
 	training_config = config["training"]
 	agent_class = AGENT_MAP[args.agent]
 	agent = agent_class(
-		env=env,
+		env=base_env,
 		network_config=network_config,
 		training_config=training_config
 	)
@@ -75,7 +76,7 @@ def run_eval_loop(config: dict, logger, args: argparse.Namespace):
 		return
 
 	reset_env_training()
-	env.set_eval_flag(True) # set the evaluation flag to True
+	base_env.set_eval_flag(True) # set the evaluation flag to True
 
 	total_episodes = int(config["eval"]["num_episodes"])
 	is_eval_baseline = bool(config["eval"]["is_eval_baseline"])
@@ -87,17 +88,17 @@ def run_eval_loop(config: dict, logger, args: argparse.Namespace):
 		print("Failed to load model. Error: {}, Trackback: {}".format(e, traceback.format_exc()))
 		return
 	# dummy action used in warm_start phase
-	dummy_action = np.ones((env.num_lanes, env.n_agents_per_lane), dtype=int)
+	dummy_action = np.ones((base_env.num_lanes, base_env.n_agents_per_lane), dtype=int)
 	is_add_graph = False
 	# log key information text in the tensorboard
 	meta_text = "Env name: {}\n".format(config["simulation"]["env_name"])
 	meta_text += "desired_rho: {}, desired_flow: {}, desired_velocity: {}, desired_traffic_condition: {}\n".\
-				format(env.desired_rho, env.desired_flow, env.desired_velocity, env.desired_traffic_condition)
+				format(base_env.desired_rho, base_env.desired_flow, base_env.desired_velocity, base_env.desired_traffic_condition)
 	meta_text += "grid_length: {}, control_rate: {}, density_level: {}\n".\
-				format(env.grid_length, env.control_rate, env.density_level)
+				format(base_env.grid_length, base_env.control_rate, base_env.density_level)
 	meta_text += "event_generator: {}, event_generator_mode:{}, vehicle_generator: {}, fundamental_diagram_name:{}\n".\
-				format(getattr(env.event_generator, "__name__", str(env.event_generator)), env.event_generator_mode, \
-						getattr(env.vehicle_generator, "__name__", str(env.vehicle_generator)), env.fundamental_diagram_name)
+				format(getattr(base_env.event_generator, "__name__", str(base_env.event_generator)), base_env.event_generator_mode, \
+						getattr(base_env.vehicle_generator, "__name__", str(base_env.vehicle_generator)), base_env.fundamental_diagram_name)
 	meta_text += "reward_gamma: {}, is_eval_baseline: {}, exclude_warm_start: {}\n".\
 				format(discount_factor, is_eval_baseline, exclude_warm_start)
 	logger.log_text(meta_text, "meta", 0)
@@ -106,7 +107,7 @@ def run_eval_loop(config: dict, logger, args: argparse.Namespace):
 	for epi_num in tqdm.trange(total_episodes, dynamic_ncols=True):
 		done = False
 		while not done:
-			if not env.warm_start_finish:
+			if not base_env.warm_start_finish:
 				action = dummy_action
 			else:
 				# Compute action
@@ -114,7 +115,7 @@ def run_eval_loop(config: dict, logger, args: argparse.Namespace):
 			# Step the environment
 			next_state, reward, done, info = _unwrap_step(env.step(action))
 
-			if env.warm_start_finish:
+			if base_env.warm_start_finish:
 				if step % args.log_interval == 0:
 					# Log the action allow rate per lane
 					action_allow_rate = info["action_allow_rate"]
@@ -122,7 +123,7 @@ def run_eval_loop(config: dict, logger, args: argparse.Namespace):
 						logger.log_scalars(rate_dict, f"action_allow_rate/{lane_id}", step)
 					logger.flush()
 
-			if not exclude_warm_start or env.warm_start_finish:
+			if not exclude_warm_start or base_env.warm_start_finish:
 				# Update episode reward
 				episode_agents_reward.append(info["reward"])
 				episode_global_reward.append(info["global_reward"])
@@ -139,10 +140,10 @@ def run_eval_loop(config: dict, logger, args: argparse.Namespace):
 
 		# metrics of the episode vs baseline
 		if is_eval_baseline:
-			env.set_is_eval_baseline_flag(True)
+			base_env.set_is_eval_baseline_flag(True)
 			eval_episode_length_dummy, eval_metrics_dummy, _, _, eval_rewards_dummy, eval_global_rewards_dummy = \
 				eval_episode(env, agent, config["eval"]["num_steps"], exclude_warm_start, is_dummy_action=True, reset_vehicles=False, reset_event_generator=False)
-			env.set_is_eval_baseline_flag(False)
+			base_env.set_is_eval_baseline_flag(False)
 		else:
 			eval_episode_length_dummy, eval_metrics_dummy, _, _, eval_rewards_dummy, eval_global_rewards_dummy = \
 				eval_episode(env, agent, config["eval"]["num_steps"], exclude_warm_start, is_dummy_action=True, reset_vehicles=False, reset_event_generator=False)
@@ -182,7 +183,7 @@ def run_eval_loop(config: dict, logger, args: argparse.Namespace):
 		else:
 			print("Warning: global_avg_reward is None at episode {}".format(epi_num))
 		logger.flush()
-		env.set_eval_flag(True, reset_vehicles=True, reset_event_generator=True)
+		base_env.set_eval_flag(True, reset_vehicles=True, reset_event_generator=True)
 		reset_env_training()
 
 	env.close()
@@ -226,5 +227,4 @@ def main():
 
 if __name__ == "__main__":
 	main()
-
 

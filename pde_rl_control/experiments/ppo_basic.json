@@ -16,7 +16,12 @@
         "event_generator_parameters": [
             {}
         ],
-        "state_normalize": false
+        "state_normalize": false,
+        "sumo_step_length": 0.1,
+        "keep_sumo_outputs": false,
+        "enable_ttc_metrics": true,
+        "enable_detector_metrics": true,
+        "return_detector_data": false
     },
     "reward": {
         "step": 1.0,

@@ -46,18 +46,19 @@ def eval_episode(env, agent, max_steps, exclude_warm_start, is_dummy_action=Fals
     Returns:
         float: the total reward of the episode
     """
-    dummy_action = np.ones((env.num_lanes, env.n_agents_per_lane), dtype=int)
+    base_env = env.unwrapped
+    dummy_action = np.ones((base_env.num_lanes, base_env.n_agents_per_lane), dtype=int)
     actions, states, rewards, global_rewards = [], [], [], []
-    env.set_eval_flag(True, reset_vehicles, reset_event_generator) # set the evaluation flag to True
+    base_env.set_eval_flag(True, reset_vehicles, reset_event_generator) # set the evaluation flag to True
     state = _unwrap_reset(env.reset())
     for step in range(max_steps):
-        if not env.warm_start_finish or is_dummy_action:
+        if not base_env.warm_start_finish or is_dummy_action:
             action = dummy_action
         else:
             action = agent.get_action(state=state, epsilon=0.0)
         next_state, reward, done, info = _unwrap_step(env.step(action))
         agent_reward, global_reward = info["reward"], info["global_reward"]
-        if not exclude_warm_start or env.warm_start_finish:
+        if not exclude_warm_start or base_env.warm_start_finish:
             rewards.append(agent_reward)
             global_rewards.append(global_reward)
             actions.append(action)
@@ -66,7 +67,7 @@ def eval_episode(env, agent, max_steps, exclude_warm_start, is_dummy_action=Fals
             break
         state = next_state
     # metrics of the episode
-    eval_metrics = env.get_current_simulation_metrics()
+    eval_metrics = base_env.get_current_simulation_metrics()
     episode_length = int(info["end_time"])
-    env.set_eval_flag(False, reset_vehicles, reset_event_generator) # set the evaluation flag to False
+    base_env.set_eval_flag(False, reset_vehicles, reset_event_generator) # set the evaluation flag to False
     return episode_length, eval_metrics, actions, states, rewards, global_rewards

@@ -94,6 +94,14 @@ class Traffic_Env(gym.Env):
 		self.reset_vehicles= True
 		self.reset_event_generator = True
 		self.config = config
+		self.sumo_step_length = config["simulation"].get("sumo_step_length", None)
+		if self.sumo_step_length is not None:
+			self.sumo_step_length = float(self.sumo_step_length)
+			assert self.sumo_step_length > 0.0, "sumo_step_length must be positive"
+		self.keep_sumo_outputs = bool(config["simulation"].get("keep_sumo_outputs", False))
+		self.enable_ttc_metrics = bool(config["simulation"].get("enable_ttc_metrics", True))
+		self.enable_detector_metrics = bool(config["simulation"].get("enable_detector_metrics", True))
+		self.return_detector_data = bool(config["simulation"].get("return_detector_data", False))
 
 		#update desired flow info
 		rho_m, rho_s = self.fd_params["rho_m"], self.fd_params["rho_s"]
@@ -123,11 +131,12 @@ class Traffic_Env(gym.Env):
 
 		self.sim_name = config["meta"]["log_dir"]
 
-		self.subscription_fields = [tc.VAR_LANEPOSITION, tc.VAR_LANE_INDEX, tc.VAR_TYPE, \
+		self.subscription_fields = [tc.VAR_LANE_INDEX, tc.VAR_TYPE, \
 							tc.VAR_DEPART_DELAY, tc.VAR_DEPARTURE, tc.VAR_CO2EMISSION, \
-							tc.VAR_WAITING_TIME, tc.VAR_SPEED]
+							tc.VAR_WAITING_TIME]
+		if self.enable_ttc_metrics:
+			self.subscription_fields.append(tc.VAR_SPEED)
 		self.subscription_fields_map = {
-			tc.VAR_LANEPOSITION: "lane_position",
 			tc.VAR_LANE_INDEX: "lane_index",
 			tc.VAR_TYPE: "vType",
 			tc.VAR_DEPART_DELAY: "depart_delay",
@@ -153,6 +162,7 @@ class Traffic_Env(gym.Env):
 		self._add_vehicles()
 		config_path = os.path.join(self.sumo_config_dir, "traffic.sumocfg")
 		config_eval_path = os.path.join(self.sumo_config_dir, "traffic_eval.sumocfg")
+		self._prepare_sumo_configs(config_path, config_eval_path)
 		self.sumo_cmd = [sumoBinary, "-c", config_path]
 		self.sumo_eval_cmd = [sumoBinary, "-c", config_eval_path]
 		if not self.is_eval:
@@ -222,7 +232,8 @@ class Traffic_Env(gym.Env):
 			self._step_count += 1
 			for veh_id in self.traci_conn.simulation.getDepartedIDList():
 				self.traci_conn.vehicle.subscribe(veh_id, self.subscription_fields)
-				self.traci_conn.vehicle.subscribeLeader(veh_id, dist=500)
+				if self.enable_ttc_metrics:
+					self.traci_conn.vehicle.subscribeLeader(veh_id, dist=500)
 			_subscription_results = self.traci_conn.vehicle.getAllSubscriptionResults()
 			_subscription_results = self.__process_subscription_results(_subscription_results)
 			self.__update_simulation_statistics(_subscription_results)
@@ -230,7 +241,7 @@ class Traffic_Env(gym.Env):
 			if len(arrived_vehs) > 0:
 				self.__update_arrived_vehicles(arrived_vehs)
 			curr_time = self.traci_conn.simulation.getTime()
-			if curr_time > self.detector_interval and (curr_time - self.delta_T) % self.detector_interval == 0:
+			if self.enable_detector_metrics and curr_time > self.detector_interval and (curr_time - self.delta_T) % self.detector_interval == 0:
 				self.__retrieve_detector_data()
 			if curr_time > self.warm_start_time:
 				self._execute_warm_start()
@@ -240,7 +251,7 @@ class Traffic_Env(gym.Env):
 				metrics_result = self.__update_simulation_metrics() # update simulation metrics
 				self.last_simulation_metrics = copy.deepcopy(metrics_result)
 				info["simulation_metrics"] = metrics_result
-				info["detector_metrics"] = self.detector_summary()
+				info["detector_metrics"] = self.detector_summary() if self.enable_detector_metrics else {}
 				break
 		info["end_step"] = self._step_count
 		info["end_time"] = self.traci_conn.simulation.getTime()
@@ -250,7 +261,8 @@ class Traffic_Env(gym.Env):
 		reward, global_reward = self._get_reward(step_rewards, info)
 		info["reward"] = reward
 		info["global_reward"] = global_reward
-		info["detector_data"] = copy.deepcopy(self.detector_data)
+		if self.return_detector_data:
+			info["detector_data"] = copy.deepcopy(self.detector_data)
 		return state, reward, done, info
 
 	def close(self):
@@ -320,6 +332,30 @@ class Traffic_Env(gym.Env):
 		for file in os.listdir(template_dir):
 			if os.path.isfile(os.path.join(template_dir, file)):
 				os.system(f"cp {os.path.join(template_dir, file)} {os.path.join(dest_dir, file)}")
+		return
+
+	def _prepare_sumo_configs(self, *config_paths):
+		for config_path in config_paths:
+			if os.path.exists(config_path):
+				self._update_sumo_config(config_path)
+		return
+
+	def _update_sumo_config(self, config_path):
+		tree = ET.parse(config_path)
+		root = tree.getroot()
+		if self.sumo_step_length is not None:
+			time_node = root.find("time")
+			if time_node is None:
+				time_node = ET.SubElement(root, "time")
+			step_node = time_node.find("step-length")
+			if step_node is None:
+				step_node = ET.SubElement(time_node, "step-length")
+			step_node.set("value", str(self.sumo_step_length))
+		if not self.keep_sumo_outputs:
+			output_node = root.find("output")
+			if output_node is not None:
+				root.remove(output_node)
+		tree.write(config_path, encoding="UTF-8", xml_declaration=True)
 		return
 
 	def _set_lane_change_permissions(self): # to do: set lane change direction permissions to achieve lane change control
@@ -576,24 +612,26 @@ class Traffic_Env(gym.Env):
 					"lane": int(veh_info["lane_index"]),
 					"waiting_time": 0.0,
 					"co2_emission": 0.0,
-					"lanechange_count": 0,
-					"lane_position": float(veh_info["lane_position"]),
-					"speed": float(veh_info["speed"])
+					"lanechange_count": 0
 				}
-				for threshold in self.ttc_thresholds:
-					self.current_simulation_statistics[vid][f"TET_{threshold}"] = 0.0
-					self.current_simulation_statistics[vid][f"TIT_{threshold}"] = 0.0
+				if self.enable_ttc_metrics:
+					self.current_simulation_statistics[vid]["speed"] = float(veh_info["speed"])
+					for threshold in self.ttc_thresholds:
+						self.current_simulation_statistics[vid][f"TET_{threshold}"] = 0.0
+						self.current_simulation_statistics[vid][f"TIT_{threshold}"] = 0.0
 			veh_stats = self.current_simulation_statistics[vid]
 			if int(veh_info["lane_index"]) != veh_stats["lane"]:
 				veh_stats["lanechange_count"] += 1
 				veh_stats["lane"] = int(veh_info["lane_index"])
 			veh_stats["co2_emission"] += (float(veh_info["co2_emission"]) * self.traci_delta_t)
 			veh_stats["waiting_time"] += float(veh_info["waiting_time"])
-			veh_stats["lane_position"] = float(veh_info["lane_position"])
-			veh_stats["speed"] = float(veh_info["speed"])
+			if self.enable_ttc_metrics:
+				veh_stats["speed"] = float(veh_info["speed"])
 		# get leader info
+		if not self.enable_ttc_metrics:
+			return
 		for vid, veh_info in subscription_results.items():
-			if not veh_info["leader_info"]: # None when there is no leader
+			if not veh_info.get("leader_info"): # None when there is no leader
 				continue
 			leader_vid, leader_gap = veh_info["leader_info"][0], float(veh_info["leader_info"][1]) + self.min_gap_fd
 			if leader_vid in self.current_simulation_statistics:
@@ -630,10 +668,11 @@ class Traffic_Env(gym.Env):
 			veh_final_statistics["waiting_time"] = veh_stats["waiting_time"]
 			veh_final_statistics["co2_emission"] = veh_stats["co2_emission"]
 			veh_final_statistics["lanechange_count"] = veh_stats["lanechange_count"]
-			for threshold in self.ttc_thresholds:
-				veh_final_statistics[f"TTC_{threshold}"] = veh_stats[f"TET_{threshold}"]
-				veh_final_statistics[f"TET_{threshold}"] = veh_stats[f"TET_{threshold}"] / veh_final_statistics["travel_time"]
-				veh_final_statistics[f"TIT_{threshold}"] = veh_stats[f"TIT_{threshold}"] / (veh_final_statistics["travel_time"] * threshold)
+			if self.enable_ttc_metrics:
+				for threshold in self.ttc_thresholds:
+					veh_final_statistics[f"TTC_{threshold}"] = veh_stats[f"TET_{threshold}"]
+					veh_final_statistics[f"TET_{threshold}"] = veh_stats[f"TET_{threshold}"] / veh_final_statistics["travel_time"]
+					veh_final_statistics[f"TIT_{threshold}"] = veh_stats[f"TIT_{threshold}"] / (veh_final_statistics["travel_time"] * threshold)
 			self.current_arrived_vehicle_statistics[veh_id] = veh_final_statistics
 		return
 
@@ -668,8 +707,10 @@ class Traffic_Env(gym.Env):
 			trips_info = [trip for trip in trips_info if trip["depart"] >= self.warm_start_time]
 			time_span = time_span - self.warm_start_time
 		vtypes = np.array([trip["vType"] for trip in trips_info])
-		ttc_fields = [f"TET_{threshold}" for threshold in self.ttc_thresholds] + [f"TIT_{threshold}" for threshold in self.ttc_thresholds] + \
-						[f"TTC_{threshold}" for threshold in self.ttc_thresholds]
+		ttc_fields = []
+		if self.enable_ttc_metrics:
+			ttc_fields = [f"TET_{threshold}" for threshold in self.ttc_thresholds] + [f"TIT_{threshold}" for threshold in self.ttc_thresholds] + \
+							[f"TTC_{threshold}" for threshold in self.ttc_thresholds]
 		for field in ["delay", "travel_time", "total_time", "co2_emission", "waiting_time", "lanechange_count", "average_speed"] + \
 						ttc_fields:
 			values = np.array([trip[field] for trip in trips_info]).astype(float)

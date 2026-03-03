@@ -1,0 +1,28 @@
+<?xml version="1.0" ?>
+<additional>
+	<inductionLoop id="det_e1_0_0" lane="e1_0" pos="0" period="60" file="./outputs/i80_detectors.out.xml"/>
+	<inductionLoop id="det_e1_0_200" lane="e1_0" pos="200" period="60" file="./outputs/i80_detectors.out.xml"/>
+	<inductionLoop id="det_e1_0_400" lane="e1_0" pos="400" period="60" file="./outputs/i80_detectors.out.xml"/>
+	<inductionLoop id="det_e1_0_600" lane="e1_0" pos="600" period="60" file="./outputs/i80_detectors.out.xml"/>
+	<inductionLoop id="det_e1_0_800" lane="e1_0" pos="800" period="60" file="./outputs/i80_detectors.out.xml"/>
+	<inductionLoop id="det_e1_1_0" lane="e1_1" pos="0" period="60" file="./outputs/i80_detectors.out.xml"/>
+	<inductionLoop id="det_e1_1_200" lane="e1_1" pos="200" period="60" file="./outputs/i80_detectors.out.xml"/>
+	<inductionLoop id="det_e1_1_400" lane="e1_1" pos="400" period="60" file="./outputs/i80_detectors.out.xml"/>
+	<inductionLoop id="det_e1_1_600" lane="e1_1" pos="600" period="60" file="./outputs/i80_detectors.out.xml"/>
+	<inductionLoop id="det_e1_1_800" lane="e1_1" pos="800" period="60" file="./outputs/i80_detectors.out.xml"/>
+	<inductionLoop id="det_e1_2_0" lane="e1_2" pos="0" period="60" file="./outputs/i80_detectors.out.xml"/>
+	<inductionLoop id="det_e1_2_200" lane="e1_2" pos="200" period="60" file="./outputs/i80_detectors.out.xml"/>
+	<inductionLoop id="det_e1_2_400" lane="e1_2" pos="400" period="60" file="./outputs/i80_detectors.out.xml"/>
+	<inductionLoop id="det_e1_2_600" lane="e1_2" pos="600" period="60" file="./outputs/i80_detectors.out.xml"/>
+	<inductionLoop id="det_e1_2_800" lane="e1_2" pos="800" period="60" file="./outputs/i80_detectors.out.xml"/>
+	<inductionLoop id="det_e1_3_0" lane="e1_3" pos="0" period="60" file="./outputs/i80_detectors.out.xml"/>
+	<inductionLoop id="det_e1_3_200" lane="e1_3" pos="200" period="60" file="./outputs/i80_detectors.out.xml"/>
+	<inductionLoop id="det_e1_3_400" lane="e1_3" pos="400" period="60" file="./outputs/i80_detectors.out.xml"/>
+	<inductionLoop id="det_e1_3_600" lane="e1_3" pos="600" period="60" file="./outputs/i80_detectors.out.xml"/>
+	<inductionLoop id="det_e1_3_800" lane="e1_3" pos="800" period="60" file="./outputs/i80_detectors.out.xml"/>
+	<inductionLoop id="det_e1_4_0" lane="e1_4" pos="0" period="60" file="./outputs/i80_detectors.out.xml"/>
+	<inductionLoop id="det_e1_4_200" lane="e1_4" pos="200" period="60" file="./outputs/i80_detectors.out.xml"/>
+	<inductionLoop id="det_e1_4_400" lane="e1_4" pos="400" period="60" file="./outputs/i80_detectors.out.xml"/>
+	<inductionLoop id="det_e1_4_600" lane="e1_4" pos="600" period="60" file="./outputs/i80_detectors.out.xml"/>
+	<inductionLoop id="det_e1_4_800" lane="e1_4" pos="800" period="60" file="./outputs/i80_detectors.out.xml"/>
+</additional>

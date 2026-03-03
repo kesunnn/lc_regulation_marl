@@ -40,6 +40,16 @@ This project uses `import gymnasium as gym`.
 - `gym.make(..., disable_env_checker=True)` is used to avoid strict framework checks.
 - Training/eval scripts accept both old (`obs, reward, done, info`) and new (`obs, reward, terminated, truncated, info`) step outputs.
 
+### Performance-Related Simulation Options
+
+These options are under `simulation` in experiment JSON files:
+
+- `sumo_step_length`: SUMO simulation step length (default `0.1`).
+- `keep_sumo_outputs`: if `false` (default), disable heavy SUMO XML outputs (`fcd`, `emission`, `tripinfo`, etc.) in generated run configs.
+- `enable_ttc_metrics`: if `false`, skip TTC/TET/TIT collection (faster).
+- `enable_detector_metrics`: if `false`, skip detector metric collection.
+- `return_detector_data`: if `false` (default), avoid returning full detector history in each `env.step()` info dict.
+
 ## Directory Structure
 
 ```text

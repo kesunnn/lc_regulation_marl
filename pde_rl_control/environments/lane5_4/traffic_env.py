@@ -15,7 +15,7 @@ import traceback
 from pde_rl_control.environments.lane5_1.traffic_env import Traffic_Env
 
 # %%
-class Traffic_Env_Four_Action_With_Baseline(Traffic_Env):
+class Traffic_Env_Four_Action_Aggressive_With_Baseline(Traffic_Env):
 	"""
 	Environment for lane change control with 4 actions with IDM fundamental diagram
 	"""
@@ -29,7 +29,7 @@ class Traffic_Env_Four_Action_With_Baseline(Traffic_Env):
 	detector_interval = 60.0
 	 
 	def __init__(self, grid_length=50.0, control_rate=1.0, density_level=0.1, event_generator=None, vehicle_generator=None, config={}):
-		super(Traffic_Env_Four_Action_With_Baseline, self).__init__(grid_length=grid_length, control_rate=control_rate,
+		super(Traffic_Env_Four_Action_Aggressive_With_Baseline, self).__init__(grid_length=grid_length, control_rate=control_rate,
 												density_level=density_level, event_generator=event_generator,
 												vehicle_generator=vehicle_generator, config=config)
 		self.num_actions = 4 # 0: no lane change, 1: lane change all allowed, 2: allow speedgain & disallow keepright 3: allow keepright & disallow speedgain
