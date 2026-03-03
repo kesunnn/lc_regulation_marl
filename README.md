@@ -14,11 +14,13 @@ git clone git@github.com:blackiny/lc_regulation_marl.git
 
 ### Environment preparation
 
-System: Ubuntu 20.04.6 LTS  
-Python version: 3.9.19  
-SUMO version: 1.20.0
+System: Ubuntu 20.04
+Python version: 3.11.14
+SUMO version: 1.26.0
 
 If needed, install missing Python dependencies:
+
+Install pytorch first with command pip install torch==2.7.0 torchvision==0.22.0 torchaudio==2.7.0 --index-url https://download.pytorch.org/whl/cu128
 
 ```
 pip install -r requirements.txt
