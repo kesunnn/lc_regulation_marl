@@ -1,7 +1,7 @@
 {
     "meta": {},
     "simulation": {
-        "env_name": "TrafficEnv_lane5_1",
+        "env_name": "TrafficEnv_lane5_5",
         "grid_length": 50.0,
         "control_rate": 1.0,
         "density_level": 0.1,
@@ -16,7 +16,13 @@
         "event_generator_parameters": [
             {}
         ],
-        "state_normalize": false
+        "state_normalize": false,
+        "sumo_step_length": 0.1,
+        "num_parallel_envs": 1,
+        "keep_sumo_outputs": false,
+        "enable_ttc_metrics": true,
+        "enable_detector_metrics": true,
+        "return_detector_data": false
     },
     "reward": {
         "step": 1.0,

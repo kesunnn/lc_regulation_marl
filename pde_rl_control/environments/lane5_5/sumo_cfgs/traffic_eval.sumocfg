@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<configuration>
+	<input>
+		<net-file value="v1.net.xml"/>
+		<additional-files value="v1_vehicles_eval.rou.xml,v1_detectors.add.xml"/>
+	</input>
+	<time>
+		<begin value="0"/>
+		<end value="900"/>
+		<step-length value="0.1"/>
+	</time>
+	<report>
+        <verbose value="true"/>
+        <no-warnings value="true"/>
+        <log value="outputs/traffic_eval.sumo.log"/>
+        <no-step-log value="true"/>
+    </report>
+	<sublane>
+		<lateral-resolution value="0.8"/>
+	</sublane>
+	<output>
+		<lanechange-output value="outputs/lanechange-output_eval.xml"/>
+		<emission-output value="outputs/emission-output_eval.xml"/>
+		<amitran-output value="outputs/trajectory-output_eval.xml"/>
+		<fcd-output value="outputs/fcd-output_eval.xml"/>
+		<collision-output value="outputs/collision-output_eval.xml"/>
+		<tripinfo-output value="outputs/tripinfo-output_eval.xml"/>
+	</output>
+</configuration>

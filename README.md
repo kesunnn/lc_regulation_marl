@@ -1,85 +1,145 @@
 # Reinforcement Learning for Freeway Lane-Change Regulation via Connected Vehicles
 
-This repository contains the code for the paper *Reinforcement Learning for Freeway Lane-Change Regulation via Connected Vehicles*.  
-You can access the paper here: [arXiv:2412.04341](https://arxiv.org/abs/2412.04341).
+## Abstract
 
+Lane-change decision-making is difficult to regulate because freeway traffic involves coupled vehicle--vehicle and vehicle--infrastructure interactions. This repository contains the code for the paper **Reinforcement Learning for Freeway Lane-Change Regulation via Connected Vehicles**, which studies a lane-change regulation framework that improves freeway traffic efficiency through connected vehicles (CVs).
 
+The proposed method computes lane-change regulation signals at a traffic management center and broadcasts them to CVs. Human-driven vehicles remain uncontrolled, while CVs follow grid-level signals such as allowing or disallowing left or right lane changes. This design avoids direct trajectory intervention, reduces positioning and communication requirements, and supports mixed traffic with different connectivity rates.
+
+The framework combines a microscopic SUMO simulation environment with a macroscopic lane-grid representation motivated by multi-lane traffic partial differential equations (PDEs). SUMO executes vehicle-level dynamics, while the learning policy observes aggregated lane-grid states and regulates lane-change source-term exchanges between adjacent lanes. The policy is trained under a centralized-training/decentralized-execution multi-agent reinforcement learning formulation.
+
+Experiments evaluate stable-flow, lane-degrade, and vehicle-stop scenarios under low, high, and congested-high demand. Results show that the learned regulation policy improves traffic efficiency in non-congested settings while maintaining comparable safety behavior in microscopic simulation.
+
+## Repository Scope
+
+This branch is prepared for paper review. It keeps only the code and configuration needed to train and evaluate the manuscript experiments.
+
+```text
+pde_rl_control/
+├── agents/          # Double DQN and PPO agents
+├── configs/         # Python config loaders and schedules
+├── environments/    # SUMO/Gymnasium lane-change regulation environments
+├── experiments/     # Manuscript experiment JSON files
+├── scripts/         # Training and evaluation entry points
+└── utils/           # Logging, TraCI, replay-buffer, and metric utilities
+```
+
+The retained SUMO environments are:
+
+| Gymnasium id | Demand regime | Purpose |
+| --- | --- | --- |
+| `TrafficEnv_lane5_5` | Low and high demand | 5-lane freeway with a downstream buffer and baseline evaluation support. |
+| `TrafficEnv_lane5_5_congested` | Congested-high demand | Congested variant used for high-density manuscript experiments. |
 
 ## Installation
 
-Clone this repository using the following command:
-```
+The manuscript experiments were run with SUMO, TraCI, Gymnasium, PyTorch, and TensorBoard.
+
+```bash
 git clone git@github.com:blackiny/lc_regulation_marl.git
-```
-
-### Environment preparation
-
-System: Ubuntu 20.04.6 LTS  
-Python version: 3.9.19  
-SUMO version: 1.20.0
-
-If needed, install missing Python dependencies:
-
-```
+cd lc_regulation_marl
 pip install -r requirements.txt
-```
-
-Navigate to the `$PROJECT_ROOT_DIR` of the repository and install the package:
-
-```
 pip install -e .
 ```
 
-## Directory Structure
+Install PyTorch separately for your CUDA or CPU environment. For example, follow the official PyTorch selector for the wheel matching your hardware.
 
-The code directory structure is as follows:  
-```
-$PROJECT_ROOT_DIR/pde_rl_control
- ├─ agents          # RL training agents
- ├─ configs         # Configuration files for training and evaluation
- ├─ environments    # RL environments based on Gym API and SUMO simulator
- ├─ experiments     # Experiment configuration JSON files
- ├─ scripts         # Scripts for running training and evaluation
- └─ utils           # Utility functions and modules
-```
+SUMO must be available on `PATH`, and the Python packages `traci` and `sumolib` should match the installed SUMO release.
 
-## Training and Evaluation
-Example configuration files for training and evaluation can be found in the following directories:  
-Training: `$PROJECT_ROOT_DIR/pde_rl_control/experiments/train`  
-Evaluation: `$PROJECT_ROOT_DIR/pde_rl_control/experiments/eval`
+## Experiment Configurations
 
-### Training
+The retained JSON files cover the manuscript scenarios:
 
-Navigate to `$PROJECT_ROOT_DIR/pde_rl_control/scripts` and run the training command:
+| Folder | Algorithm/stage | Contents |
+| --- | --- | --- |
+| `pde_rl_control/experiments/train5_5` | Double DQN training | Stable flow, lane degrade, and vehicle stop for `rho_010`, `rho_015`, and `rho_045`. |
+| `pde_rl_control/experiments/train_ppo5_5` | PPO training | PPO baseline configs for the same retained demand/scenario set. |
+| `pde_rl_control/experiments/eval5_5` | Evaluation | Evaluation configs for trained Double DQN or PPO checkpoints. |
 
-```
-python ./run_dqn_task.py --config_template dqn_basic --config_file ../experiments/train/dqn_lane5_3_rho_010_dummy_idm_grid100.json --seed 12345 --log_interval 1000 --port 39682 > train.out 
-```
+Demand identifiers correspond to the paper settings:
 
-The training output will be logged in `train.out`, and the results will be saved in a subdirectory under `$PROJECT_ROOT_DIR/results`. The logging location is specified in `train.out`:
+| Config suffix | Paper demand |
+| --- | --- |
+| `rho_010` | Low demand |
+| `rho_015` | High demand |
+| `rho_045` | Congested-high demand |
 
-```
-logging outputs to $PROJECT_ROOT_DIR/results/$training_id
-```
+Scenario identifiers correspond to:
 
-The training results directory structure is as follows:
+| Config suffix | Paper scenario |
+| --- | --- |
+| `dummy` | Stable Flow |
+| `lane_degrade` | Lane Degrade |
+| `vehicle_stop` | Vehicle Stop |
 
-```
-$PROJECT_ROOT_DIR/results/$training_id
-├─ config.json  # The dumped configuration JSON file
-├─ models       # All training checkpoints
-└─ tf_logs      # TensorBoard logs
-```
+## Training
 
-### Evaluation
+Run commands from `pde_rl_control/scripts`.
 
-To evaluate a training checkpoint, run the following command:
+Double DQN example:
 
-```
-python ./run_dqn_task_eval.py --config_template dqn_basic \
---config_file ../experiments/eval/dqn_lane5_3_rho_015_dummy_idm_grid100.json \
---model_path $MODEL_PATH \
---seed 12346 --log_interval 1000 --port 39505 > eval.out
+```bash
+python ./run_dqn_task.py \
+  --config_template dqn_basic \
+  --config_file ../experiments/train5_5/dqn_lane5_5_rho_010_dummy_idm_grid100.json \
+  --seed 1001 \
+  --log_interval 1000 \
+  --port 39682
 ```
 
-The evaluation results directory structure is similar to that of training, except no model checkpoints are generated during evaluation.
+PPO example:
+
+```bash
+python ./run_ppo_task.py \
+  --config_template ppo_basic \
+  --config_file ../experiments/train_ppo5_5/ppo_lane5_5_rho_010_dummy_idm_grid100.json \
+  --seed 1001 \
+  --log_interval 1000 \
+  --port 40682
+```
+
+Training outputs are written to:
+
+```text
+results/<experiment_name>_<date>_<time>/
+├── config.json
+├── models/
+└── tf_logs/
+```
+
+## Evaluation
+
+Run commands from `pde_rl_control/scripts`.
+
+```bash
+python ./run_task_eval.py \
+  --agent dqn \
+  --config_template dqn_basic \
+  --config_file ../experiments/eval5_5/lane5_5_rho_010_dummy_idm_grid100.json \
+  --model_path ../../results/<training_run>/models/<checkpoint>.pt \
+  --seed 1002 \
+  --log_interval 1000 \
+  --port 45682
+```
+
+Use `--agent ppo --config_template ppo_basic` when evaluating PPO checkpoints.
+
+If `--num_parallel_envs` is set, the selected `--port` and the next worker ports must be free. The local evaluation environment uses the next port after the worker pool.
+
+## Notes for Reviewers
+
+- Generated outputs are intentionally excluded from this branch; reruns create `results/` locally.
+- Batch shell launchers and visualization notebooks/scripts are removed to keep the review artifact focused on reproducible training and evaluation code.
+- `rho_030` configs are removed because they are not part of the retained manuscript demand settings.
+
+## Citation
+
+If this repository is useful for your work, please cite the associated manuscript:
+
+```bibtex
+@article{sun2026lanechange,
+  title={Reinforcement Learning for Freeway Lane-Change Regulation via Connected Vehicles},
+  author={Sun, Ke and Yu, Huan},
+  year={2026}
+}
+```

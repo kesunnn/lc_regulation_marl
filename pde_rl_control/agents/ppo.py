@@ -159,14 +159,23 @@ class PPOAgent(nn.Module):
 			action = policy_logits.argmax(dim=1).detach().cpu().numpy().squeeze(0) # (1, H, W) -> (H, W)
 		return action
 
+	def sample_action(self, state: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+		"""
+		Sample an action from the current policy for PPO data collection.
+		Returns the sampled action and its behavior log-probability.
+		"""
+		assert state.shape == self.state_shape, f"Invalid state shape: {state.shape} != {self.state_shape}"
+		state_tensor = ptu.from_numpy(np.transpose(state, (2, 0, 1))).unsqueeze(0)
+		with torch.no_grad():
+			action, log_prob, _ = self.actor_critic.get_action_and_value(state_tensor)
+		return (
+			action.detach().cpu().numpy().squeeze(0),
+			log_prob.detach().cpu().numpy().squeeze(0),
+		)
+
 	def compute_gae(self, rewards: torch.Tensor, values: torch.Tensor, next_values: torch.Tensor, dones: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
 		"""
 		Compute Generalized Advantage Estimation (GAE).
-		
-		If dones only indicate truncation (not termination):
-		- We should NOT zero out the bootstrap value when done=True
-		- The episode continues, we just don't have the next observation
-		- Use the predicted value function as bootstrap instead of 0
 		"""
 		batch_size, seq_len = rewards.shape[:2]
 		
@@ -180,10 +189,12 @@ class PPOAgent(nn.Module):
 			else:
 				next_value = values[:, t + 1]
 			
-			# Key change: If done only means truncation, don't zero out next_value
-			# The environment continues, we just truncated the episode for practical reasons
-			delta = rewards[:, t] + self.discount * next_value - values[:, t]
-			gae = delta + self.discount * self.gae_lambda * gae
+			done_t = dones[:, t]
+			while done_t.dim() < rewards.dim() - 1:
+				done_t = done_t.unsqueeze(-1)
+			next_non_terminal = 1.0 - done_t
+			delta = rewards[:, t] + self.discount * next_value * next_non_terminal - values[:, t]
+			gae = delta + self.discount * self.gae_lambda * next_non_terminal * gae
 			
 			advantages[:, t] = gae
 			returns[:, t] = advantages[:, t] + values[:, t]
@@ -270,7 +281,8 @@ class PPOAgent(nn.Module):
 		}
 
 	def update(self, states: torch.Tensor, actions: torch.Tensor, rewards: torch.Tensor, 
-			   next_states: torch.Tensor, dones: torch.Tensor, step: int) -> dict:
+			   next_states: torch.Tensor, dones: torch.Tensor, step: int,
+			   old_log_probs: Optional[torch.Tensor] = None) -> dict:
 		"""
 		Update the PPO agent using trajectory data.
 		Expects trajectory data with shape (batch_size, seq_len, ...).
@@ -290,10 +302,10 @@ class PPOAgent(nn.Module):
 			values = values_flat.reshape(batch_size, seq_len, *values_flat.shape[1:])  # (batch_size, seq_len, H, W)
 			next_values = next_values_flat.reshape(batch_size, seq_len, *next_values_flat.shape[1:])  # (batch_size, seq_len, H, W)
 			
-			# Get old log probabilities
-			actions_flat = actions.reshape(-1, *actions.shape[2:])  # (batch_size * seq_len, H, W)
-			old_log_probs_flat, _, _ = self.actor_critic.evaluate_actions(states_flat, actions_flat)
-			old_log_probs = old_log_probs_flat.reshape(batch_size, seq_len, *old_log_probs_flat.shape[1:])
+			if old_log_probs is None:
+				actions_flat = actions.reshape(-1, *actions.shape[2:])  # (batch_size * seq_len, H, W)
+				old_log_probs_flat, _, _ = self.actor_critic.evaluate_actions(states_flat, actions_flat)
+				old_log_probs = old_log_probs_flat.reshape(batch_size, seq_len, *old_log_probs_flat.shape[1:])
 		
 		# Use the last next_value for GAE computation
 		final_next_values = next_values[:, -1]  # (batch_size, H, W)

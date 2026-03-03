@@ -1,8 +1,8 @@
 # setup.py
-from setuptools import setup
+from setuptools import find_packages, setup
 
 setup(
     name='PDE_RL_TRAFFIC_CONTROl',
     version='0.1.0',
-    packages=['pde_rl_control'],
+    packages=find_packages(),
 )
