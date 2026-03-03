@@ -5,6 +5,17 @@ from matplotlib import animation
 import matplotlib.ticker as mticker
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
+def _unwrap_reset(reset_output):
+    return reset_output[0] if isinstance(reset_output, tuple) else reset_output
+
+
+def _unwrap_step(step_output):
+    if len(step_output) == 5:
+        next_state, reward, terminated, truncated, info = step_output
+        return next_state, reward, bool(terminated or truncated), info
+    return step_output
+
+
 def calculate_episode_reward(step_rewards, gamma):
     """
     Calculate the reward of an episode
@@ -38,13 +49,13 @@ def eval_episode(env, agent, max_steps, exclude_warm_start, is_dummy_action=Fals
     dummy_action = np.ones((env.num_lanes, env.n_agents_per_lane), dtype=int)
     actions, states, rewards, global_rewards = [], [], [], []
     env.set_eval_flag(True, reset_vehicles, reset_event_generator) # set the evaluation flag to True
-    state = env.reset()
+    state = _unwrap_reset(env.reset())
     for step in range(max_steps):
         if not env.warm_start_finish or is_dummy_action:
             action = dummy_action
         else:
             action = agent.get_action(state=state, epsilon=0.0)
-        next_state, reward, done, info = env.step(action)
+        next_state, reward, done, info = _unwrap_step(env.step(action))
         agent_reward, global_reward = info["reward"], info["global_reward"]
         if not exclude_warm_start or env.warm_start_finish:
             rewards.append(agent_reward)

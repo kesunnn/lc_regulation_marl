@@ -1,6 +1,6 @@
 # %%
 import os, time, argparse, json
-import gym
+import gymnasium as gym
 import numpy as np
 import torch
 import tqdm
@@ -12,6 +12,18 @@ import pde_rl_control.configs as configs
 from pde_rl_control.utils.eval import calculate_episode_reward, eval_episode
 from pde_rl_control.utils.u import process_data_by_method
 import pde_rl_control.environments
+
+# %%
+def _unwrap_reset(reset_output):
+	return reset_output[0] if isinstance(reset_output, tuple) else reset_output
+
+
+def _unwrap_step(step_output):
+	if len(step_output) == 5:
+		next_state, reward, terminated, truncated, info = step_output
+		return next_state, reward, bool(terminated or truncated), info
+	return step_output
+
 
 # %%
 def run_training_loop(config: dict, logger, args: argparse.Namespace):
@@ -53,8 +65,7 @@ def run_training_loop(config: dict, logger, args: argparse.Namespace):
 	def reset_env_training():
 		nonlocal state
 
-		state = env.reset()
-		assert not isinstance(state, tuple), "env.reset() must return np.ndarray - make sure your Gym version uses the old step API"
+		state = _unwrap_reset(env.reset())
 		state = np.asarray(state)
 		return
 
@@ -94,7 +105,7 @@ def run_training_loop(config: dict, logger, args: argparse.Namespace):
 			action = agent.get_action(state=state, epsilon=0.0)
 
 		# Step the environment
-		next_state, reward, done, info = env.step(action)
+		next_state, reward, done, info = _unwrap_step(env.step(action))
 
 		if env.warm_start_finish:
 			if step % args.log_interval == 0:
@@ -292,6 +303,5 @@ def main():
 
 if __name__ == "__main__":
 	main()
-
 
 

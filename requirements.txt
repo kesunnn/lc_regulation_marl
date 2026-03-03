@@ -1,5 +1,7 @@
-gym==0.25.2
+gymnasium==0.29.1
+numpy
 traci==1.26.0
+sumolib==1.26.0
 tensorboard
 matplotlib
 tqdm

@@ -1,5 +1,5 @@
 # %%
-import gym
+import gymnasium as gym
 import os, sys, math, time, copy
 import numpy as np
 import sumolib
