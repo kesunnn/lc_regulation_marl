@@ -158,12 +158,18 @@ def run_training_loop(config: dict, logger, args: argparse.Namespace):
 			)
 			update_info["lr"] = agent.lr_scheduler.get_last_lr()[0]
 			reset_env_training()
+			has_episode_reward = False
 			for k, v in episode_reward_dict.items():
 				reward_metrics = {}
 				avg_reward = calculate_episode_reward(v, discount_factor)
+				if avg_reward is None:
+					continue
+				has_episode_reward = True
 				for method in reward_metrics_methods:
 					reward_metrics[method] = process_data_by_method(avg_reward, method)
 				logger.log_scalars(reward_metrics, f"training_episode_{k}", step)
+			if not has_episode_reward:
+				logger.log_scalar(1, "training_episode_empty", step)
 			episode_reward_dict = {"reward": [], "global_reward": [],
 						"reward_spi": [], "global_reward_spi": [],
 						"reward_los": [], "global_reward_los": []
@@ -304,4 +310,3 @@ def main():
 
 if __name__ == "__main__":
 	main()
-

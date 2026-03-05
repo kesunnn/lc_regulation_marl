@@ -943,8 +943,8 @@
         },
         "use_gpu": true,
         "gpu_id": 0,
-        "total_steps": 300000,
-        "replay_buffer_size": 50000
+        "total_steps": 150000,
+        "replay_buffer_size": 30000
     },
     "eval": {
         "exclude_warm_start": true,
