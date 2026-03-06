@@ -176,6 +176,8 @@ def run_training_loop(config: dict, logger, args: argparse.Namespace):
 						}
 			if info["is_collision"]:
 				logger.log_scalar(len(info["collision_vehicles"]), "train_collisions", step)
+			else:
+				logger.log_scalar(0, "train_collisions", step)
 			
 			logger.log_scalar(info["end_time"], "episode_length", step)
 			logger.flush()

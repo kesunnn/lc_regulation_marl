@@ -157,6 +157,8 @@ def run_eval_loop(config: dict, logger, args: argparse.Namespace):
 		episode_agents_reward, episode_global_reward = [], []
 		if info["is_collision"]:
 			logger.log_scalar(len(info["collision_vehicles"]), "eval_collisions", epi_num)
+		else:
+			logger.log_scalar(0, "eval_collisions", epi_num)
 
 		# metrics of the episode vs baseline
 		if is_eval_baseline:

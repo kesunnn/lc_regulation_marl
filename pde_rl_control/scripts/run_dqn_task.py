@@ -159,7 +159,9 @@ def run_training_loop(config: dict, logger, args: argparse.Namespace):
 			# episode_agents_reward, episode_global_reward = [], []
 			if info["is_collision"]:
 				logger.log_scalar(len(info["collision_vehicles"]), "train_collisions", step)
-			
+			else:
+				logger.log_scalar(0, "train_collisions", step)
+
 			logger.log_scalar(info["end_time"], "episode_length", step)
 			# episode reward
 			# if agent_avg_reward is not None:
