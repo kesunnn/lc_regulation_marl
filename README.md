@@ -97,3 +97,36 @@ python ./run_task_eval.py --agent dqn --config_template dqn_basic \
 ```
 
 The evaluation results directory structure is similar to training, except no model checkpoints are generated.
+
+### Batch Helper Scripts
+
+Run from `$PROJECT_ROOT_DIR/pde_rl_control/scripts`.
+
+Generate an eval batch script from training `nohup` logs:
+
+```bash
+python ./generate_eval_bash.py \
+  --checkpoint 50000 \
+  --log_folder ../training_logs_v1 \
+  --agent dqn \
+  --port_start 45600 \
+  --output_script ./eval_dqn_ckpt50000.sh
+```
+
+Then launch the generated eval jobs:
+
+```bash
+bash ./eval_dqn_ckpt50000.sh
+```
+
+Generate `train_data_tf_logs_locs.json` from a `nohup` log folder:
+
+```bash
+python ./generate_vis_data_locations.py \
+  --log_folder ../training_logs_v1 \
+  --output_file ./train_data_tf_logs_locs.json
+```
+
+`generate_vis_data_locations.py` uses a hard-coded mapping from output key name to `experiment_name`
+(for example, `"tf_log_dir_010_dummy_dqn": "010_dummy_dqn"`), and fills each key with the extracted
+`tf_logs` path from lines matching `logging outputs to .../tf_logs`.
