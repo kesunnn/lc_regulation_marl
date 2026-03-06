@@ -1,12 +1,12 @@
 {
     "meta": {
-        "experiment_name": "015_vehicle_stop_dqn"
+        "experiment_name": "010_vehicle_stop"
     },
     "simulation": {
         "env_name": "TrafficEnv_lane5_4",
         "max_time": 600,
         "grid_length": 100.0,
-        "density_level": 0.15,
+        "density_level": 0.1,
         "state_normalize": true,
         "fundamental_diagram_name": "IDM",
         "vehicle_generator": "generate_vehicle_flows_from_IDM_FD",

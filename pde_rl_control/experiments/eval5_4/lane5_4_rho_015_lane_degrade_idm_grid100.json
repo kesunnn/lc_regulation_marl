@@ -1,6 +1,6 @@
 {
     "meta": {
-        "experiment_name": "015_lane_degrade_dqn"
+        "experiment_name": "015_lane_degrade"
     },
     "simulation": {
         "env_name": "TrafficEnv_lane5_4",

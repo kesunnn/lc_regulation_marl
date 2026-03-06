@@ -1,6 +1,6 @@
 {
     "meta": {
-        "experiment_name": "010_dummy_dqn"
+        "experiment_name": "010_dummy"
     },
     "simulation": {
         "env_name": "TrafficEnv_lane5_4",

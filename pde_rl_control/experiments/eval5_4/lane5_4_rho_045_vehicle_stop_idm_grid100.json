@@ -1,6 +1,6 @@
 {
     "meta": {
-        "experiment_name": "045_vehicle_stop_dqn"
+        "experiment_name": "045_vehicle_stop"
     },
     "simulation": {
         "env_name": "TrafficEnv_lane5_4",

@@ -32,6 +32,26 @@ def _unwrap_step(step_output):
 	return step_output
 
 
+def _prefix_eval_result_dir(config: dict, agent: str):
+	"""
+	Prefix eval output folder with agent name to avoid collisions across agent types.
+	"""
+	meta = config.get("meta", {})
+	log_dir = meta.get("log_dir", "")
+	result_path = meta.get("result_path", "")
+	if not log_dir or not result_path:
+		return
+	prefix = f"{agent}_"
+	if log_dir.startswith(prefix):
+		return
+	result_root = os.path.dirname(os.path.normpath(result_path))
+	prefixed_log_dir = prefix + log_dir
+	prefixed_result_path = os.path.join(result_root, prefixed_log_dir)
+	os.makedirs(prefixed_result_path, exist_ok=True)
+	meta["log_dir"] = prefixed_log_dir
+	meta["result_path"] = prefixed_result_path
+
+
 # %%
 def run_eval_loop(config: dict, logger, args: argparse.Namespace):
 	# set random seeds
@@ -166,22 +186,22 @@ def run_eval_loop(config: dict, logger, args: argparse.Namespace):
 				logger.log_scalar(v_dict, f'eval_metrics/{k}', epi_num)
 		logger.flush()
 		# log rewards
-		if agent_avg_reward is not None:
+		if agent_avg_reward is not None and eval_rewards_dummy is not None:
 			agent_reward_metrics = {}
 			for method in reward_metrics_methods:
 				agent_reward_metrics[method] = process_data_by_method(agent_avg_reward, method)
 				agent_reward_metrics[method + ":dummy"] = process_data_by_method(eval_rewards_dummy, method)
 			logger.log_scalars(agent_reward_metrics, "eval_metrics/rewards", epi_num)
 		else:
-			print("Warning: agent_avg_reward is None at episode {}".format(epi_num))
-		if global_avg_reward is not None:
+			print("Warning: empty agent rewards at episode {}".format(epi_num))
+		if global_avg_reward is not None and eval_global_rewards_dummy is not None:
 			global_reward_metrics = {}
 			for method in reward_metrics_methods:
 				global_reward_metrics[method] = process_data_by_method(global_avg_reward, method)
 				global_reward_metrics[method + ":dummy"] = process_data_by_method(eval_global_rewards_dummy, method)
 			logger.log_scalars(global_reward_metrics, "eval_metrics/global_rewards", epi_num)
 		else:
-			print("Warning: global_avg_reward is None at episode {}".format(epi_num))
+			print("Warning: empty global rewards at episode {}".format(epi_num))
 		logger.flush()
 		base_env.set_eval_flag(True, reset_vehicles=True, reset_event_generator=True)
 		reset_env_training()
@@ -213,6 +233,7 @@ def main():
 		raise ValueError(f"Invalid config template: {cfg_template}")
 
 	config, config_str = configs.config_map[cfg_template](args.config_file)
+	_prefix_eval_result_dir(config, args.agent)
 	logger = configs.make_logger(config)
 	# write config_str to file
 	config_str = json.loads(config_str)
@@ -227,4 +248,3 @@ def main():
 
 if __name__ == "__main__":
 	main()
-
