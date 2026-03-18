@@ -19,12 +19,13 @@ from pde_rl_control.utils.traci_u import extract_vehicle_root_type
 class Traffic_Env_Four_Action_Aggressive_With_Baseline_Buffered(
     Traffic_Env_Four_Action_Aggressive_With_Baseline
 ):
-    """lane5_5 keeps a 1 km control window inside a 1.4 km physical road."""
+    """lane5_5 keeps a 1 km control window with only a 200 m tail buffer."""
 
     road_length = 1000.0
-    physical_road_length = 1400.0
-    control_start_pos = 200.0
-    control_end_pos = 1200.0
+    physical_road_length = 1200.0
+    control_start_pos = 0.0
+    control_end_pos = 1000.0
+    lane_change_disable_start_pos = 1000.0
 
     def __init__(
         self,
@@ -73,6 +74,9 @@ class Traffic_Env_Four_Action_Aggressive_With_Baseline_Buffered(
             return agent_idx
         return None
 
+    def _is_lane_change_disabled_position(self, position_x):
+        return self.lane_change_disable_start_pos <= position_x < self.physical_road_length
+
     def _get_state(self):
         state_dim = 4
         global_state = np.zeros((self.num_lanes, self.n_agents_per_lane, state_dim))
@@ -107,11 +111,14 @@ class Traffic_Env_Four_Action_Aggressive_With_Baseline_Buffered(
             lane_id = f"e1_{lane}"
             veh_list = self.traci_conn.lane.getLastStepVehicleIDs(lane_id)
             for veh_id in veh_list:
+                veh_pos = self.traci_conn.vehicle.getPosition(veh_id)[0]
+                if self._is_lane_change_disabled_position(veh_pos):
+                    self.traci_conn.vehicle.setLaneChangeMode(veh_id, 256)
+                    continue
                 vtype = self.traci_conn.vehicle.getTypeID(veh_id)
                 root_vtype = extract_vehicle_root_type(vtype)
                 if root_vtype != "controlled" or veh_id in exemptive_vehicles:
                     continue
-                veh_pos = self.traci_conn.vehicle.getPosition(veh_id)[0]
                 veh_agent = self._position_to_agent(veh_pos)
                 if veh_agent is None:
                     if vtype != "controlled":
