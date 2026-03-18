@@ -17,7 +17,7 @@
         <no-step-log value="true"/>
     </report>
 	<sublane>
-		<lateral-resolution value="0.8"/>
+		<lateral-resolution value="1.6"/>
 	</sublane>
 	<output>
 		<lanechange-output value="outputs/lanechange-output.xml"/>
