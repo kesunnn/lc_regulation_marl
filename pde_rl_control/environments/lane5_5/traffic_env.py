@@ -22,6 +22,7 @@ class Traffic_Env_Four_Action_Aggressive_With_Baseline_Buffered(
     """lane5_5 keeps a 1 km control window with only a 200 m tail buffer."""
 
     road_length = 1000.0
+    T_fd = 1.8
     physical_road_length = 1200.0
     control_start_pos = 0.0
     control_end_pos = 1000.0
