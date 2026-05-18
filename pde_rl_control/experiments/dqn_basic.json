@@ -18,6 +18,7 @@
         ],
         "state_normalize": false,
         "sumo_step_length": 0.1,
+        "num_parallel_envs": 1,
         "keep_sumo_outputs": false,
         "enable_ttc_metrics": true,
         "enable_detector_metrics": true,
@@ -44,6 +45,8 @@
         "target_update_period": 2000,
         "clip_grad_norm": 10.0,
         "use_double_q": true,
+        "use_done_mask": true,
+        "mask_collision_done": true,
         "lr_scheduler_mode": "constant",
         "lr_scheduler_params": {
             "factor": 1.0

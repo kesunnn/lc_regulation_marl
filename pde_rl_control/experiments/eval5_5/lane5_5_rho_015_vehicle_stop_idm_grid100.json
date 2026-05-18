@@ -1614,7 +1614,11 @@
                 "duration": 110
             }
         ],
-        "sumo_step_length": 0.2
+        "sumo_step_length": 0.1,
+        "enable_ttc_metrics": true,
+        "enable_detector_metrics": true,
+        "return_detector_data": false,
+        "keep_sumo_outputs": false
     },
     "reward": {
         "neighbor_radius": 2,
@@ -1623,8 +1627,6 @@
     "network": {
         "kernel_dims": [
             32,
-            64,
-            128,
             64,
             32
         ]

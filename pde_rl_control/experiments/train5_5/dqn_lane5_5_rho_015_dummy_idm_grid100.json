@@ -15,7 +15,11 @@
         "event_generator_parameters": [
             {}
         ],
-        "sumo_step_length": 0.2
+        "sumo_step_length": 0.1,
+        "enable_ttc_metrics": true,
+        "enable_detector_metrics": true,
+        "return_detector_data": false,
+        "keep_sumo_outputs": false
     },
     "reward": {
         "neighbor_radius": 2,
@@ -24,8 +28,6 @@
     "network": {
         "kernel_dims": [
             32,
-            64,
-            128,
             64,
             32
         ]
@@ -46,8 +48,8 @@
         },
         "use_gpu": true,
         "gpu_id": 0,
-        "total_steps": 500000,
-        "replay_buffer_size": 30000
+        "total_steps": 300000,
+        "replay_buffer_size": 50000
     },
     "eval": {
         "exclude_warm_start": true,

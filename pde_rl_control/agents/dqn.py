@@ -116,9 +116,8 @@ class DQNAgent(nn.Module):
 				next_action = self.target_critic(next_state).argmax(dim=1) # (batch_size, H, W)
 			
 			next_q_values = next_qa_values.gather(1, next_action.unsqueeze(1)).squeeze(1) # (batch_size, H, W)
-			# done = done.unsqueeze(1).unsqueeze(1).expand(-1, self.state_shape[0], self.state_shape[1]) # (batch_size,) -> (batch_size, H, W)
-			# target_values = reward + self.discount * next_q_values * (1 - done) # (batch_size, H, W)
-			target_values = reward + self.discount * next_q_values # (batch_size, H, W)
+			done_mask = done.reshape(batch_size, 1, 1).expand(-1, self.state_shape[0], self.state_shape[1])
+			target_values = reward + self.discount * next_q_values * (1 - done_mask) # (batch_size, H, W)
 
 		# train the critic with the target values
 		qa_values = self.critic(state) # (batch_size, num_actions, H, W)
@@ -173,5 +172,4 @@ class DQNAgent(nn.Module):
 		else:
 			self.target_critic.load_state_dict(torch.load(file_path))
 		return
-
 
