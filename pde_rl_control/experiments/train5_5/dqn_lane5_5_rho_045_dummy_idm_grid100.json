@@ -3,7 +3,7 @@
         "experiment_name": "045_dummy_dqn"
     },
     "simulation": {
-        "env_name": "TrafficEnv_lane5_5",
+        "env_name": "TrafficEnv_lane5_5_congested",
         "max_time": 900,
         "grid_length": 100.0,
         "density_level": 0.45,

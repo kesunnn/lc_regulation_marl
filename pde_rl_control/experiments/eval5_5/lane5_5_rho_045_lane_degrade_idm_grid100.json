@@ -3,7 +3,7 @@
         "experiment_name": "045_lane_degrade"
     },
     "simulation": {
-        "env_name": "TrafficEnv_lane5_5",
+        "env_name": "TrafficEnv_lane5_5_congested",
         "max_time": 1050,
         "grid_length": 100.0,
         "density_level": 0.45,

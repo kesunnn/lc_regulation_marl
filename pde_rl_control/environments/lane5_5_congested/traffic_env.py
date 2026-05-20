@@ -16,10 +16,10 @@ from pde_rl_control.utils.traci_u import extract_vehicle_root_type
 
 
 # %%
-class Traffic_Env_Four_Action_Aggressive_With_Baseline_Buffered(
+class Traffic_Env_Four_Action_Aggressive_With_Baseline_Buffered_Congested(
     Traffic_Env_Four_Action_Aggressive_With_Baseline
 ):
-    """lane5_5 keeps a 1 km control window with only a 200 m tail buffer."""
+    """Buffered lane5_5 variant for congested rho=0.45 scenarios."""
 
     road_length = 1000.0
     T_fd = 1.4

@@ -1,5 +1,5 @@
 # %%
-import gymnasium as gym
+import gym
 import os, sys, math, time, copy
 import numpy as np
 import sumolib
@@ -49,7 +49,6 @@ class Traffic_Env_Four_Action_With_Baseline(Traffic_Env):
 		config_path = os.path.join(self.sumo_config_dir, "traffic.sumocfg")
 		config_eval_path = os.path.join(self.sumo_config_dir, "traffic_eval.sumocfg")
 		config_eval_baseline_path = os.path.join(self.sumo_config_dir, "traffic_eval_baseline.sumocfg")
-		self._prepare_sumo_configs(config_path, config_eval_path, config_eval_baseline_path)
 		self.sumo_cmd = [sumoBinary, "-c", config_path]
 		self.sumo_eval_cmd = [sumoBinary, "-c", config_eval_path]
 		self.sumo_eval_baseline_cmd = [sumoBinary, "-c", config_eval_baseline_path]
