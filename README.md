@@ -45,6 +45,10 @@ This project uses `import gymnasium as gym`.
 These options are under `simulation` in experiment JSON files:
 
 - `sumo_step_length`: SUMO simulation step length (default `0.1`).
+- `num_parallel_envs`: number of independent SUMO training workers opened inside one training run (default `1`).
+  When this is greater than 1, `total_steps` is treated as aggregate environment-control steps across workers.
+  The base `--port` plus the next `num_parallel_envs` ports must be free, because training workers use
+  `--port ... --port + num_parallel_envs - 1` and the local evaluation environment uses `--port + num_parallel_envs`.
 - `keep_sumo_outputs`: if `false` (default), disable heavy SUMO XML outputs (`fcd`, `emission`, `tripinfo`, etc.) in generated run configs.
 - `enable_ttc_metrics`: if `false`, skip TTC/TET/TIT collection (faster).
 - `enable_detector_metrics`: if `false`, skip detector metric collection.
@@ -62,6 +66,18 @@ $PROJECT_ROOT_DIR/pde_rl_control
  └─ utils           # Utility functions and modules
 ```
 
+## SUMO Environment Variants
+
+All registered environments use one straight SUMO edge (`e1`) with 5 lanes (`e1_0` to `e1_4`) and a 24.59 m/s speed limit. Agents are lane-grid controllers; the number of controlled grid cells per lane is `road_length / grid_length`. Actions are applied only to `controlled` vehicles. `uncontrolled` vehicles keep their normal SUMO lane-change behavior.
+
+| Gym id | Road geometry | Buffer layout | Control scheme | Notes |
+| --- | --- | --- | --- | --- |
+| `TrafficEnv_lane5_1` | 5 lanes, 1000 m physical lane length, 1000 m controlled length | No upstream or downstream buffer | 2 actions per lane grid: `0` suppress controlled-vehicle lane changes, `1` allow lane changes | Base binary lane-change regulation environment. |
+| `TrafficEnv_lane5_2` | 5 lanes, 1000 m physical lane length, 1000 m controlled length | No upstream or downstream buffer | 4 actions per lane grid: `0` suppress, `1` allow both directions, `2` left-only, `3` right-only | Directional regulation is implemented by switching controlled vehicles among `controlled`, `controlled:left`, and `controlled:right` SUMO vehicle types. |
+| `TrafficEnv_lane5_3` | 5 lanes, 1000 m physical lane length, 1000 m controlled length | No upstream or downstream buffer | Same 4-action directional control as `TrafficEnv_lane5_2` | Adds separate evaluation-baseline route/config support via `traffic_eval_baseline.sumocfg` and `v1_routes_eval_baseline.rou.xml`. |
+| `TrafficEnv_lane5_4` | 5 lanes, 1000 m physical lane length, 1000 m controlled length | No upstream or downstream buffer | Same 4-action directional control as `TrafficEnv_lane5_3` | Uses a more aggressive SL2015 lane-changing template, including higher assertiveness/pushiness and lower cooperation in the route files. |
+| `TrafficEnv_lane5_5` | 5 lanes, 1200 m physical lane length, 1000 m controlled/metric section | No upstream buffer. 200 m downstream tail buffer from 1000 m to 1200 m | Same 4-action directional control inside 0-1000 m; lane changes are suppressed in the 1000-1200 m tail buffer | Buffered version of `TrafficEnv_lane5_4`. State and section metrics are computed only over the 0-1000 m control window. |
+
 ## Training and Evaluation
 
 Example config files:
@@ -76,6 +92,16 @@ Run from `$PROJECT_ROOT_DIR/pde_rl_control/scripts`:
 ```bash
 python ./run_dqn_task.py --config_template dqn_basic --config_file ../experiments/train/dqn_lane5_3_rho_010_dummy_idm_grid100.json --seed 12345 --log_interval 1000 --port 39682 > train.out
 ```
+
+Parallel SUMO collection can be enabled from the command line:
+
+```bash
+python ./run_dqn_task.py --config_template dqn_basic \
+  --config_file ../experiments/train/dqn_lane5_3_rho_010_dummy_idm_grid100.json \
+  --seed 12345 --log_interval 1000 --port 39682 --num_parallel_envs 4 > train.out
+```
+
+The PPO training entry point accepts the same `--num_parallel_envs` option.
 
 Training outputs are written under `$PROJECT_ROOT_DIR/results/$training_id`:
 
