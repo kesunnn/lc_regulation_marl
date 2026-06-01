@@ -75,6 +75,60 @@ def _num_parallel_envs(config, args):
 	))
 
 
+def _log_eval_metric_pair(logger, agent_metrics, dummy_metrics, step, prefix="eval_metrics"):
+	agent_metrics = agent_metrics or {}
+	dummy_metrics = dummy_metrics or {}
+	keys = sorted(set(agent_metrics.keys()) | set(dummy_metrics.keys()))
+	missing_agent_keys = []
+	missing_dummy_keys = []
+	is_empty_metrics = len(keys) == 0
+
+	for key in keys:
+		has_agent = key in agent_metrics
+		has_dummy = key in dummy_metrics
+		if not has_agent:
+			missing_agent_keys.append(key)
+		if not has_dummy:
+			missing_dummy_keys.append(key)
+
+		agent_value = agent_metrics.get(key)
+		dummy_value = dummy_metrics.get(key)
+		if isinstance(agent_value, dict) or isinstance(dummy_value, dict):
+			merged = {}
+			if isinstance(agent_value, dict):
+				merged.update(agent_value)
+			if isinstance(dummy_value, dict):
+				for sub_key, sub_value in dummy_value.items():
+					merged[sub_key + ":dummy"] = sub_value
+			if merged:
+				logger.log_scalars(merged, f"{prefix}/{key}", step)
+		else:
+			merged = {}
+			if agent_value is not None:
+				merged[key] = agent_value
+			if dummy_value is not None:
+				merged[key + ":dummy"] = dummy_value
+			if merged:
+				logger.log_scalars(merged, f"{prefix}/{key}", step)
+
+	if missing_agent_keys or missing_dummy_keys or is_empty_metrics:
+		warning = (
+			f"Warning: incomplete eval metrics at step {step}. "
+			f"missing_agent={missing_agent_keys}, missing_dummy={missing_dummy_keys}, "
+			f"both_empty={is_empty_metrics}"
+		)
+		print(warning)
+		logger.log_scalar(len(missing_agent_keys), f"{prefix}/missing_agent_metric_count", step)
+		logger.log_scalar(len(missing_dummy_keys), f"{prefix}/missing_dummy_metric_count", step)
+		logger.log_scalar(int(is_empty_metrics), f"{prefix}/empty_metrics", step)
+		logger.log_scalar(1, f"{prefix}/incomplete_metrics", step)
+	else:
+		logger.log_scalar(0, f"{prefix}/missing_agent_metric_count", step)
+		logger.log_scalar(0, f"{prefix}/missing_dummy_metric_count", step)
+		logger.log_scalar(0, f"{prefix}/empty_metrics", step)
+		logger.log_scalar(0, f"{prefix}/incomplete_metrics", step)
+
+
 def _log_eval_episode(logger, epi_num, info, eval_metrics, agent_rewards, agent_global_rewards,
 					  eval_episode_length_dummy, eval_metrics_dummy, eval_rewards_dummy,
 					  eval_global_rewards_dummy, discount_factor, reward_metrics_methods):
@@ -92,16 +146,13 @@ def _log_eval_episode(logger, epi_num, info, eval_metrics, agent_rewards, agent_
 	logger.log_scalars(epi_length_dict, "eval_metrics/episode_length", epi_num)
 	logger.flush()
 
-	eval_metrics = copy.deepcopy(eval_metrics)
-	for key, value in eval_metrics.items():
-		if isinstance(value, dict):
-			for key2, value2 in eval_metrics_dummy[key].items():
-				value[key2 + ":dummy"] = value2
-			logger.log_scalars(value, f'eval_metrics/{key}', epi_num)
-		else:
-			value_dummy = eval_metrics_dummy[key]
-			value_dict = {key: value, key + ":dummy": value_dummy}
-			logger.log_scalar(value_dict, f'eval_metrics/{key}', epi_num)
+	_log_eval_metric_pair(
+		logger,
+		copy.deepcopy(eval_metrics),
+		copy.deepcopy(eval_metrics_dummy),
+		epi_num,
+		prefix="eval_metrics"
+	)
 	logger.flush()
 
 	if agent_avg_reward is not None and eval_rewards_dummy is not None:
@@ -110,16 +161,24 @@ def _log_eval_episode(logger, epi_num, info, eval_metrics, agent_rewards, agent_
 			agent_reward_metrics[method] = process_data_by_method(agent_avg_reward, method)
 			agent_reward_metrics[method + ":dummy"] = process_data_by_method(eval_rewards_dummy, method)
 		logger.log_scalars(agent_reward_metrics, "eval_metrics/rewards", epi_num)
+		logger.log_scalar(0, "eval_metrics/rewards_missing_agent", epi_num)
+		logger.log_scalar(0, "eval_metrics/rewards_missing_dummy", epi_num)
 	else:
 		print("Warning: empty agent rewards at episode {}".format(epi_num))
+		logger.log_scalar(int(agent_avg_reward is None), "eval_metrics/rewards_missing_agent", epi_num)
+		logger.log_scalar(int(eval_rewards_dummy is None), "eval_metrics/rewards_missing_dummy", epi_num)
 	if global_avg_reward is not None and eval_global_rewards_dummy is not None:
 		global_reward_metrics = {}
 		for method in reward_metrics_methods:
 			global_reward_metrics[method] = process_data_by_method(global_avg_reward, method)
 			global_reward_metrics[method + ":dummy"] = process_data_by_method(eval_global_rewards_dummy, method)
 		logger.log_scalars(global_reward_metrics, "eval_metrics/global_rewards", epi_num)
+		logger.log_scalar(0, "eval_metrics/global_rewards_missing_agent", epi_num)
+		logger.log_scalar(0, "eval_metrics/global_rewards_missing_dummy", epi_num)
 	else:
 		print("Warning: empty global rewards at episode {}".format(epi_num))
+		logger.log_scalar(int(global_avg_reward is None), "eval_metrics/global_rewards_missing_agent", epi_num)
+		logger.log_scalar(int(eval_global_rewards_dummy is None), "eval_metrics/global_rewards_missing_dummy", epi_num)
 	logger.flush()
 
 
