@@ -53,7 +53,7 @@
         "adam_eps": 0.0001,
         "use_gpu": true,
         "gpu_id": 0,
-        "total_steps": 300000
+        "total_steps": 250000
     },
     "eval": {
         "exclude_warm_start": true,
