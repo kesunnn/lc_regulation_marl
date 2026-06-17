@@ -126,12 +126,6 @@ Use `--agent ppo --config_template ppo_basic` when evaluating PPO checkpoints.
 
 If `--num_parallel_envs` is set, the selected `--port` and the next worker ports must be free. The local evaluation environment uses the next port after the worker pool.
 
-## Notes for Reviewers
-
-- Generated outputs are intentionally excluded from this branch; reruns create `results/` locally.
-- Batch shell launchers and visualization notebooks/scripts are removed to keep the review artifact focused on reproducible training and evaluation code.
-- `rho_030` configs are removed because they are not part of the retained manuscript demand settings.
-
 ## Citation
 
 If this repository is useful for your work, please cite the associated manuscript:
